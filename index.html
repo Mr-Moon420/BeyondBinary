@@ -1,0 +1,574 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>BeyondBinary</title>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --base: #0F1A2E;
+      --surface: #162236;
+      --border: #1E3050;
+      --text: #EEF0F4;
+      --muted: #7A8BA3;
+      --accent: #4A9EFF;
+      --supported: #2ECC71;
+      --refuted: #E74C3C;
+      --neutral: #F39C12;
+      --radius: 10px;
+    }
+
+    body {
+      background: var(--base);
+      color: var(--text);
+      font-family: 'DM Sans', sans-serif;
+      min-height: 100vh;
+      padding: 0;
+    }
+
+    header {
+      padding: 24px 48px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .logo {
+      font-family: 'DM Mono', monospace;
+      font-size: 1.2rem;
+      color: var(--accent);
+      letter-spacing: -0.02em;
+    }
+
+    .logo span {
+      color: var(--text);
+    }
+
+    .tagline {
+      font-size: 0.78rem;
+      color: var(--muted);
+      margin-left: auto;
+      font-weight: 300;
+    }
+
+    main {
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 48px 48px 80px;
+    }
+
+    .top-panel {
+      display: grid;
+      grid-template-columns: 260px 1fr;
+      gap: 40px;
+      align-items: start;
+      margin-bottom: 48px;
+    }
+
+    /* Score Circle */
+    .score-side {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 20px;
+    }
+
+    .circle-wrap {
+      position: relative;
+      width: 220px;
+      height: 220px;
+    }
+
+    .circle-wrap svg {
+      transform: rotate(-90deg);
+    }
+
+    .circle-track {
+      fill: none;
+      stroke: var(--border);
+      stroke-width: 10;
+    }
+
+    .circle-fill {
+      fill: none;
+      stroke-width: 10;
+      stroke-linecap: round;
+      stroke-dasharray: 628;
+      stroke-dashoffset: 628;
+      transition: stroke-dashoffset 1.2s cubic-bezier(0.4, 0, 0.2, 1), stroke 0.4s ease;
+    }
+
+    .circle-center {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 2px;
+    }
+
+    .score-number {
+      font-family: 'DM Mono', monospace;
+      font-size: 2.6rem;
+      font-weight: 500;
+      color: var(--text);
+      line-height: 1;
+    }
+
+    .score-label {
+      font-size: 0.7rem;
+      color: var(--muted);
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+    }
+
+    .verdict-badge {
+      font-family: 'DM Mono', monospace;
+      font-size: 0.82rem;
+      padding: 6px 16px;
+      border-radius: 20px;
+      border: 1px solid var(--border);
+      color: var(--muted);
+      background: var(--surface);
+      transition: all 0.3s ease;
+    }
+
+    .verdict-badge.supported { border-color: var(--supported); color: var(--supported); }
+    .verdict-badge.refuted   { border-color: var(--refuted);   color: var(--refuted);   }
+    .verdict-badge.mixed     { border-color: var(--neutral);   color: var(--neutral);   }
+
+    .context-pills {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      width: 100%;
+    }
+
+    .pill {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 0.75rem;
+      color: var(--muted);
+      padding: 6px 0;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .pill-val {
+      font-family: 'DM Mono', monospace;
+      color: var(--text);
+    }
+
+    /* Input Side */
+    .input-side {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .input-side label {
+      font-size: 0.78rem;
+      color: var(--muted);
+      font-weight: 400;
+    }
+
+    textarea {
+      width: 100%;
+      height: 200px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      color: var(--text);
+      font-family: 'DM Sans', sans-serif;
+      font-size: 0.9rem;
+      line-height: 1.6;
+      padding: 16px;
+      resize: vertical;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+
+    textarea::placeholder { color: var(--muted); }
+    textarea:focus { border-color: var(--accent); }
+
+    .btn-row {
+      display: flex;
+      gap: 12px;
+      align-items: center;
+    }
+
+    button {
+      font-family: 'DM Sans', sans-serif;
+      font-size: 0.88rem;
+      font-weight: 500;
+      cursor: pointer;
+      border: none;
+      border-radius: var(--radius);
+      padding: 11px 28px;
+      transition: opacity 0.2s, transform 0.1s;
+    }
+
+    button:active { transform: scale(0.98); }
+
+    .btn-primary {
+      background: var(--accent);
+      color: #fff;
+    }
+
+    .btn-primary:hover { opacity: 0.88; }
+    .btn-primary:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
+
+    .btn-ghost {
+      background: transparent;
+      border: 1px solid var(--border);
+      color: var(--muted);
+    }
+
+    .btn-ghost:hover { border-color: var(--muted); color: var(--text); }
+
+    .status-text {
+      font-size: 0.78rem;
+      color: var(--muted);
+      font-family: 'DM Mono', monospace;
+    }
+
+    /* Claims Section */
+    .claims-header {
+      font-size: 0.72rem;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      margin-bottom: 16px;
+      padding-bottom: 12px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .claims-list {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .claim-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 20px;
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 16px;
+      opacity: 0;
+      transform: translateY(8px);
+      animation: fadeUp 0.3s ease forwards;
+    }
+
+    @keyframes fadeUp {
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .claim-text {
+      font-size: 0.9rem;
+      line-height: 1.55;
+      color: var(--text);
+      margin-bottom: 10px;
+    }
+
+    .evidence-text {
+      font-size: 0.78rem;
+      color: var(--muted);
+      line-height: 1.5;
+      border-left: 2px solid var(--border);
+      padding-left: 12px;
+      margin-top: 8px;
+    }
+
+    .evidence-label {
+      font-size: 0.68rem;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      margin-bottom: 4px;
+    }
+
+    .claim-verdict {
+      font-family: 'DM Mono', monospace;
+      font-size: 0.72rem;
+      padding: 4px 10px;
+      border-radius: 6px;
+      white-space: nowrap;
+      height: fit-content;
+      align-self: start;
+    }
+
+    .verdict-Supported    { background: rgba(46,204,113,0.12); color: var(--supported); }
+    .verdict-Refuted      { background: rgba(231,76,60,0.12);  color: var(--refuted);   }
+    .verdict-Not-Enough-Info { background: rgba(243,156,18,0.12); color: var(--neutral); }
+
+    .confidence-bar-wrap {
+      margin-top: 10px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .confidence-bar-bg {
+      flex: 1;
+      height: 3px;
+      background: var(--border);
+      border-radius: 2px;
+      overflow: hidden;
+    }
+
+    .confidence-bar-fill {
+      height: 100%;
+      border-radius: 2px;
+      transition: width 0.8s ease;
+    }
+
+    .confidence-label {
+      font-family: 'DM Mono', monospace;
+      font-size: 0.68rem;
+      color: var(--muted);
+      white-space: nowrap;
+    }
+
+    .empty-state {
+      text-align: center;
+      padding: 60px 0;
+      color: var(--muted);
+      font-size: 0.85rem;
+      line-height: 1.8;
+    }
+
+    .empty-state .hint {
+      font-family: 'DM Mono', monospace;
+      font-size: 0.75rem;
+      color: var(--border);
+      margin-top: 8px;
+    }
+
+    .error-msg {
+      background: rgba(231,76,60,0.08);
+      border: 1px solid rgba(231,76,60,0.2);
+      border-radius: var(--radius);
+      padding: 14px 18px;
+      font-size: 0.82rem;
+      color: var(--refuted);
+    }
+
+    @media (max-width: 700px) {
+      .top-panel { grid-template-columns: 1fr; }
+      .score-side { flex-direction: row; flex-wrap: wrap; justify-content: center; }
+      main { padding: 24px 20px 60px; }
+      header { padding: 16px 20px; }
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <div class="logo">Beyond<span>Binary</span></div>
+  <div class="tagline">Multi-dimensional media credibility analysis</div>
+</header>
+
+<main>
+  <div class="top-panel">
+
+    <!-- Score Circle -->
+    <div class="score-side">
+      <div class="circle-wrap">
+        <svg width="220" height="220" viewBox="0 0 220 220">
+          <circle class="circle-track" cx="110" cy="110" r="100" />
+          <circle class="circle-fill" id="circleArc" cx="110" cy="110" r="100" stroke="#4A9EFF" />
+        </svg>
+        <div class="circle-center">
+          <div class="score-number" id="scoreNumber">—</div>
+          <div class="score-label">credibility</div>
+        </div>
+      </div>
+
+      <div class="verdict-badge" id="verdictBadge">awaiting input</div>
+
+      <div class="context-pills" id="contextPills">
+        <div class="pill"><span>Claims extracted</span><span class="pill-val" id="pillClaims">—</span></div>
+        <div class="pill"><span>Supported</span><span class="pill-val" id="pillSupported" style="color:var(--supported)">—</span></div>
+        <div class="pill"><span>Refuted</span><span class="pill-val" id="pillRefuted" style="color:var(--refuted)">—</span></div>
+        <div class="pill"><span>Insufficient evidence</span><span class="pill-val" id="pillNeutral" style="color:var(--neutral)">—</span></div>
+      </div>
+    </div>
+
+    <!-- Input -->
+    <div class="input-side">
+      <label>Paste article text below</label>
+      <textarea id="articleInput" placeholder="Paste a news article or paragraph here. BeyondBinary will extract factual claims, verify each against a Wikipedia evidence base, and return a credibility score with per-claim verdicts."></textarea>
+      <div class="btn-row">
+        <button class="btn-primary" id="analyzeBtn" onclick="analyze()">Analyze</button>
+        <button class="btn-ghost" onclick="reset()">Clear</button>
+        <span class="status-text" id="statusText"></span>
+      </div>
+      <div id="errorMsg" style="display:none"></div>
+    </div>
+
+  </div>
+
+  <!-- Claims -->
+  <div class="claims-header" id="claimsHeader" style="display:none">
+    Claim breakdown
+  </div>
+  <div class="claims-list" id="claimsList">
+    <div class="empty-state">
+      Enter article text and click Analyze to begin.<br>
+      <span class="hint">backend must be running on localhost:8000</span>
+    </div>
+  </div>
+</main>
+
+<script>
+  const CIRCUMFERENCE = 2 * Math.PI * 100; // 628.3
+
+  function setScore(score) {
+    const arc = document.getElementById('circleArc');
+    const offset = CIRCUMFERENCE - (score / 100) * CIRCUMFERENCE;
+    arc.style.strokeDashoffset = offset;
+
+    // Color by score
+    let color = '#E74C3C';
+    if (score >= 70) color = '#2ECC71';
+    else if (score >= 40) color = '#F39C12';
+    arc.style.stroke = color;
+
+    document.getElementById('scoreNumber').textContent = score.toFixed(1) + '%';
+  }
+
+  function setVerdict(score) {
+    const badge = document.getElementById('verdictBadge');
+    badge.className = 'verdict-badge';
+    if (score >= 70) {
+      badge.textContent = 'Mostly credible';
+      badge.classList.add('supported');
+    } else if (score >= 40) {
+      badge.textContent = 'Mixed credibility';
+      badge.classList.add('mixed');
+    } else {
+      badge.textContent = 'Low credibility';
+      badge.classList.add('refuted');
+    }
+  }
+
+  function verdictClass(v) {
+    return 'verdict-' + v.replace(/\s+/g, '-');
+  }
+
+  function renderClaims(claims) {
+    const list = document.getElementById('claimsList');
+    list.innerHTML = '';
+
+    let supported = 0, refuted = 0, neutral = 0;
+
+    claims.forEach((c, i) => {
+      if (c.verdict === 'Supported') supported++;
+      else if (c.verdict === 'Refuted') refuted++;
+      else neutral++;
+
+      const conf = c.confidence ?? 1;
+      const confPct = Math.round(conf * 100);
+      const confColor = c.verdict === 'Supported' ? 'var(--supported)'
+                      : c.verdict === 'Refuted'   ? 'var(--refuted)'
+                      : 'var(--neutral)';
+
+      const evidenceText = Array.isArray(c.evidence)
+        ? c.evidence[0]
+        : (c.evidence || 'No evidence retrieved.');
+
+      const card = document.createElement('div');
+      card.className = 'claim-card';
+      card.style.animationDelay = `${i * 0.07}s`;
+      card.innerHTML = `
+        <div>
+          <div class="claim-text">${c.claim}</div>
+          <div class="confidence-bar-wrap">
+            <div class="confidence-bar-bg">
+              <div class="confidence-bar-fill" style="width:${confPct}%;background:${confColor}"></div>
+            </div>
+            <div class="confidence-label">${confPct}% confidence</div>
+          </div>
+          <div style="margin-top:12px">
+            <div class="evidence-label">Evidence</div>
+            <div class="evidence-text">${evidenceText}</div>
+          </div>
+        </div>
+        <div class="claim-verdict ${verdictClass(c.verdict)}">${c.verdict}</div>
+      `;
+      list.appendChild(card);
+    });
+
+    document.getElementById('pillClaims').textContent = claims.length;
+    document.getElementById('pillSupported').textContent = supported;
+    document.getElementById('pillRefuted').textContent = refuted;
+    document.getElementById('pillNeutral').textContent = neutral;
+  }
+
+  async function analyze() {
+    const text = document.getElementById('articleInput').value.trim();
+    if (!text) return;
+
+    const btn = document.getElementById('analyzeBtn');
+    const status = document.getElementById('statusText');
+    const errDiv = document.getElementById('errorMsg');
+
+    btn.disabled = true;
+    status.textContent = 'extracting claims...';
+    errDiv.style.display = 'none';
+    document.getElementById('claimsHeader').style.display = 'none';
+    document.getElementById('claimsList').innerHTML = '';
+
+    try {
+      const res = await fetch('http://127.0.0.1:8000/analyze', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ text })
+      });
+
+      if (!res.ok) throw new Error(`Server returned ${res.status}`);
+      const data = await res.json();
+
+      status.textContent = 'done';
+      setTimeout(() => { status.textContent = ''; }, 2000);
+
+      setScore(data.credibility_score);
+      setVerdict(data.credibility_score);
+      renderClaims(data.claims);
+      document.getElementById('claimsHeader').style.display = 'block';
+
+    } catch (err) {
+      status.textContent = '';
+      errDiv.style.display = 'block';
+      errDiv.className = 'error-msg';
+      errDiv.textContent = `Could not reach backend. Make sure your FastAPI server is running on port 8000. (${err.message})`;
+    } finally {
+      btn.disabled = false;
+    }
+  }
+
+  function reset() {
+    document.getElementById('articleInput').value = '';
+    document.getElementById('scoreNumber').textContent = '—';
+    document.getElementById('verdictBadge').className = 'verdict-badge';
+    document.getElementById('verdictBadge').textContent = 'awaiting input';
+    document.getElementById('circleArc').style.strokeDashoffset = 628;
+    document.getElementById('circleArc').style.stroke = '#4A9EFF';
+    document.getElementById('claimsList').innerHTML = '<div class="empty-state">Enter article text and click Analyze to begin.<br><span class="hint">backend must be running on localhost:8000</span></div>';
+    document.getElementById('claimsHeader').style.display = 'none';
+    document.getElementById('errorMsg').style.display = 'none';
+    ['pillClaims','pillSupported','pillRefuted','pillNeutral'].forEach(id => {
+      document.getElementById(id).textContent = '—';
+    });
+  }
+</script>
+</body>
+</html>

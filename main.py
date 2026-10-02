@@ -21,9 +21,10 @@ class ArticleInput(BaseModel):
 @app.post("/analyze")
 def analyze(article: ArticleInput):
     claims = extract_claims(article.text)
-    results = [verify_claim(c) for c in claims[:5]]  # cap at 5 for speed
+    results = [verify_claim(c) for c in claims[:5]]
     score = compute_score(results)
     return {
         "credibility_score": score,
-        "claims": results
+        "claims": results,
+        "extractor": "ClaimBuster-DeBERTaV2"
     }

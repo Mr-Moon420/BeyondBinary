@@ -1,7 +1,14 @@
 def compute_score(results: list[dict]) -> float:
     if not results:
         return 0.0
-    weights = {"Supported": 1.0, "Not Enough Info": 0.5, "Refuted": 0.0}
-    total = sum(weights[r["verdict"]] * r.get("confidence", 1.0) for r in results)
+    weights = {
+        "Supported": 1.0,
+        "Not Enough Info": 0.5,
+        "Misleading-Framing": 0.35,
+        "Refuted": 0.0
+    }
+    total = sum(weights.get(r["verdict"], 0.5) * r.get("confidence", 1.0) for r in results)
     max_possible = sum(r.get("confidence", 1.0) for r in results)
-    return round((total / max_possible) * 100, 2)
+    if max_possible == 0:
+        return 0.0
+    return round((total / max_possible) * 100, 2)

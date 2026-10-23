@@ -63,10 +63,11 @@
 
     .top-panel {
       display: grid;
-      grid-template-columns: 260px 1fr;
+      grid-template-columns: 310px 1fr;
       gap: 40px;
       align-items: start;
       margin-bottom: 48px;
+      min-width: 0;
     }
 
     /* Score Circle */
@@ -164,11 +165,95 @@
       color: var(--text);
     }
 
+    /* Political Bias Card */
+    .bias-card {
+      width: 100%;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 16px 18px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      margin-top: 6px;
+    }
+
+    .bias-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 0.72rem;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+    }
+
+    .bias-badge {
+      font-family: 'DM Mono', monospace;
+      font-size: 0.74rem;
+      padding: 3px 10px;
+      border-radius: 12px;
+      border: 1px solid var(--border);
+      background: rgba(255, 255, 255, 0.04);
+      color: var(--muted);
+      transition: all 0.3s ease;
+    }
+
+    .bias-badge.left       { border-color: #3498DB; color: #3498DB; background: rgba(52, 152, 219, 0.14); }
+    .bias-badge.lean-left  { border-color: #5DADE2; color: #5DADE2; background: rgba(93, 173, 226, 0.14); }
+    .bias-badge.center     { border-color: #95A5A6; color: #BDC3C7; background: rgba(149, 165, 166, 0.14); }
+    .bias-badge.lean-right { border-color: #E67E22; color: #E67E22; background: rgba(230, 126, 34, 0.14); }
+    .bias-badge.right      { border-color: #E74C3C; color: #E74C3C; background: rgba(231, 76, 60, 0.14); }
+
+    .spectrum-wrap {
+      position: relative;
+      margin: 8px 0 2px;
+    }
+
+    .spectrum-track {
+      height: 8px;
+      border-radius: 4px;
+      background: linear-gradient(90deg, #2980B9 0%, #3498DB 25%, #7F8C8D 50%, #E67E22 75%, #C0392B 100%);
+      position: relative;
+      box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.5);
+    }
+
+    .spectrum-pin {
+      position: absolute;
+      top: -5px;
+      left: 50%;
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      background: #FFFFFF;
+      border: 3px solid var(--surface);
+      box-shadow: 0 0 10px rgba(74, 158, 255, 0.9);
+      transform: translateX(-50%);
+      transition: left 1s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    .spectrum-labels {
+      display: flex;
+      justify-content: space-between;
+      font-family: 'DM Mono', monospace;
+      font-size: 0.65rem;
+      color: var(--muted);
+      margin-top: 6px;
+    }
+
+    .bias-details {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      margin-top: 2px;
+    }
+
     /* Input Side */
     .input-side {
       display: flex;
       flex-direction: column;
       gap: 16px;
+      min-width: 0;
     }
 
     .input-side label {
@@ -230,6 +315,98 @@
     }
 
     .btn-ghost:hover { border-color: var(--muted); color: var(--text); }
+
+    .btn-secondary {
+      background: rgba(74, 158, 255, 0.12);
+      color: var(--accent);
+      border: 1px solid rgba(74, 158, 255, 0.3);
+      padding: 9px 18px;
+      font-size: 0.84rem;
+      white-space: nowrap;
+    }
+
+    .btn-secondary:hover {
+      background: rgba(74, 158, 255, 0.22);
+    }
+
+    .btn-secondary:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
+    .url-input-wrap {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .url-input-row {
+      display: flex;
+      gap: 10px;
+      width: 100%;
+      min-width: 0;
+      overflow: hidden;
+      box-sizing: border-box;
+    }
+
+    input[type="url"] {
+      flex: 1;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      color: var(--text);
+      font-family: 'DM Mono', monospace;
+      font-size: 0.84rem;
+      padding: 10px 14px;
+      outline: none;
+      transition: border-color 0.2s;
+      min-width: 0;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      box-sizing: border-box;
+    }
+
+    input[type="url"]:focus {
+      border-color: var(--accent);
+    }
+
+    input[type="url"]::placeholder {
+      color: var(--muted);
+      font-family: 'DM Sans', sans-serif;
+    }
+
+    .article-meta-banner {
+      background: rgba(74, 158, 255, 0.08);
+      border: 1px solid rgba(74, 158, 255, 0.25);
+      border-radius: var(--radius);
+      padding: 12px 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      animation: fadeIn 0.3s ease;
+      min-width: 0;
+      overflow: hidden;
+    }
+
+    .meta-title {
+      font-size: 0.88rem;
+      font-weight: 500;
+      color: var(--text);
+      line-height: 1.4;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .meta-domain {
+      font-family: 'DM Mono', monospace;
+      font-size: 0.72rem;
+      color: var(--accent);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
 
     .status-text {
       font-size: 0.78rem;
@@ -305,9 +482,25 @@
       align-self: start;
     }
 
-    .verdict-Supported    { background: rgba(46,204,113,0.12); color: var(--supported); }
-    .verdict-Refuted      { background: rgba(231,76,60,0.12);  color: var(--refuted);   }
-    .verdict-Not-Enough-Info { background: rgba(243,156,18,0.12); color: var(--neutral); }
+    .verdict-Supported          { background: rgba(46,204,113,0.12); color: var(--supported); border: 1px solid rgba(46,204,113,0.25); }
+    .verdict-Refuted            { background: rgba(231,76,60,0.12);  color: var(--refuted);   border: 1px solid rgba(231,76,60,0.25); }
+    .verdict-Misleading-Framing { background: rgba(230,126,34,0.14); color: #E67E22;         border: 1px solid rgba(230,126,34,0.35); }
+    .verdict-Not-Enough-Info    { background: rgba(243,156,18,0.12); color: var(--neutral);   border: 1px solid rgba(243,156,18,0.25); }
+
+    .framing-alert {
+      margin-top: 10px;
+      padding: 8px 12px;
+      border-radius: 6px;
+      background: rgba(230, 126, 34, 0.08);
+      border-left: 3px solid #E67E22;
+      font-size: 0.78rem;
+      color: #F39C12;
+      line-height: 1.5;
+    }
+
+    .framing-alert strong {
+      color: #E67E22;
+    }
 
     .confidence-bar-wrap {
       margin-top: 10px;
@@ -337,6 +530,42 @@
       white-space: nowrap;
     }
 
+    .source-badge {
+      font-family: 'DM Mono', monospace;
+      font-size: 0.65rem;
+      padding: 2px 7px;
+      border-radius: 4px;
+      background: rgba(74, 158, 255, 0.12);
+      color: var(--accent);
+      border: 1px solid rgba(74, 158, 255, 0.25);
+      margin-left: 8px;
+      vertical-align: middle;
+      font-weight: 400;
+    }
+
+    
+    .source-link {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      margin-top: 6px;
+      font-size: 0.72rem;
+      color: var(--accent);
+      text-decoration: none;
+      font-family: 'DM Mono', monospace;
+      background: rgba(74, 158, 255, 0.06);
+      padding: 3px 8px;
+      border-radius: 4px;
+      border: 1px solid rgba(74, 158, 255, 0.15);
+      transition: background 0.2s, border-color 0.2s;
+    }
+
+    .source-link:hover {
+      background: rgba(74, 158, 255, 0.15);
+      border-color: var(--accent);
+      text-decoration: none;
+    }
+
     .empty-state {
       text-align: center;
       padding: 60px 0;
@@ -361,11 +590,557 @@
       color: var(--refuted);
     }
 
+    /* Cross-Reference Framing Section */
+    .xref-section {
+      margin-top: 48px;
+      padding-top: 32px;
+      border-top: 1px solid var(--border);
+      display: none;
+    }
+
+    .xref-header {
+      font-size: 0.72rem;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      margin-bottom: 20px;
+      padding-bottom: 12px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .xref-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
+    }
+
+    /* Distribution bar */
+    .xref-dist-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 20px;
+    }
+
+    .xref-card-title {
+      font-size: 0.78rem;
+      font-weight: 500;
+      color: var(--text);
+      margin-bottom: 16px;
+    }
+
+    .dist-bar-wrap {
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+
+    .dist-stacked-bar {
+      height: 28px;
+      border-radius: 6px;
+      overflow: hidden;
+      display: flex;
+      background: var(--border);
+    }
+
+    .dist-segment {
+      height: 100%;
+      transition: width 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+      position: relative;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: 'DM Mono', monospace;
+      font-size: 0.62rem;
+      color: rgba(255,255,255,0.9);
+      min-width: 0;
+      overflow: hidden;
+    }
+
+    .dist-segment.seg-left       { background: #2980B9; }
+    .dist-segment.seg-lean-left  { background: #3498DB; }
+    .dist-segment.seg-center     { background: #7F8C8D; }
+    .dist-segment.seg-lean-right { background: #E67E22; }
+    .dist-segment.seg-right      { background: #C0392B; }
+    .dist-segment.seg-unrated    { background: #34495E; }
+
+    .dist-legend {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+
+    .dist-legend-item {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 0.72rem;
+      color: var(--muted);
+    }
+
+    .dist-legend-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 3px;
+      flex-shrink: 0;
+    }
+
+    .dist-legend-dot.dot-left       { background: #2980B9; }
+    .dist-legend-dot.dot-lean-left  { background: #3498DB; }
+    .dist-legend-dot.dot-center     { background: #7F8C8D; }
+    .dist-legend-dot.dot-lean-right { background: #E67E22; }
+    .dist-legend-dot.dot-right      { background: #C0392B; }
+    .dist-legend-dot.dot-unrated    { background: #34495E; }
+
+    .dist-summary {
+      font-size: 0.75rem;
+      color: var(--muted);
+      padding: 10px 14px;
+      border-radius: 6px;
+      background: rgba(255,255,255,0.03);
+      border: 1px solid var(--border);
+      line-height: 1.5;
+    }
+
+    .dist-summary .balance-tag {
+      font-family: 'DM Mono', monospace;
+      font-size: 0.72rem;
+      padding: 2px 8px;
+      border-radius: 4px;
+      margin-left: 6px;
+    }
+
+    .balance-tag.balanced {
+      background: rgba(46, 204, 113, 0.12);
+      color: var(--supported);
+      border: 1px solid rgba(46, 204, 113, 0.25);
+    }
+
+    .balance-tag.leaning {
+      background: rgba(243, 156, 18, 0.12);
+      color: var(--neutral);
+      border: 1px solid rgba(243, 156, 18, 0.25);
+    }
+
+    .balance-tag.skewed {
+      background: rgba(231, 76, 60, 0.12);
+      color: var(--refuted);
+      border: 1px solid rgba(231, 76, 60, 0.25);
+    }
+
+    /* Source outlet cards */
+    .xref-sources-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 20px;
+    }
+
+    .source-outlet-list {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      max-height: 340px;
+      overflow-y: auto;
+    }
+
+    .source-outlet-list::-webkit-scrollbar {
+      width: 4px;
+    }
+
+    .source-outlet-list::-webkit-scrollbar-thumb {
+      background: var(--border);
+      border-radius: 2px;
+    }
+
+    .outlet-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 8px 12px;
+      border-radius: 6px;
+      background: rgba(255,255,255,0.02);
+      border: 1px solid var(--border);
+      transition: background 0.2s, border-color 0.2s;
+    }
+
+    .outlet-item:hover {
+      background: rgba(74, 158, 255, 0.06);
+      border-color: rgba(74, 158, 255, 0.2);
+    }
+
+    .outlet-bias-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+
+    .outlet-info {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .outlet-name {
+      font-size: 0.78rem;
+      color: var(--text);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .outlet-domain {
+      font-family: 'DM Mono', monospace;
+      font-size: 0.65rem;
+      color: var(--muted);
+    }
+
+    .outlet-bias-label {
+      font-family: 'DM Mono', monospace;
+      font-size: 0.65rem;
+      padding: 2px 8px;
+      border-radius: 4px;
+      white-space: nowrap;
+      flex-shrink: 0;
+    }
+
+    .outlet-bias-label.ob-left       { background: rgba(52,152,219,0.14); color: #3498DB; border: 1px solid rgba(52,152,219,0.3); }
+    .outlet-bias-label.ob-lean-left  { background: rgba(93,173,226,0.14); color: #5DADE2; border: 1px solid rgba(93,173,226,0.3); }
+    .outlet-bias-label.ob-center     { background: rgba(149,165,166,0.14); color: #BDC3C7; border: 1px solid rgba(149,165,166,0.3); }
+    .outlet-bias-label.ob-lean-right { background: rgba(230,126,34,0.14); color: #E67E22; border: 1px solid rgba(230,126,34,0.3); }
+    .outlet-bias-label.ob-right      { background: rgba(231,76,60,0.14);  color: #E74C3C; border: 1px solid rgba(231,76,60,0.3); }
+    .outlet-bias-label.ob-unrated    { background: rgba(52,73,94,0.14);   color: #7F8C8D; border: 1px solid rgba(52,73,94,0.3); }
+
+    .outlet-link {
+      color: var(--accent);
+      text-decoration: none;
+      font-size: 0.72rem;
+      flex-shrink: 0;
+      opacity: 0.6;
+      transition: opacity 0.2s;
+    }
+
+    .outlet-link:hover {
+      opacity: 1;
+    }
+
+    /* Framing aggregate summary */
+    .xref-framing-agg {
+      grid-column: 1 / -1;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 20px;
+    }
+
+    .framing-agg-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 14px;
+    }
+
+    .framing-stat-card {
+      padding: 14px 16px;
+      border-radius: 8px;
+      background: rgba(255,255,255,0.02);
+      border: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .framing-stat-value {
+      font-family: 'DM Mono', monospace;
+      font-size: 1.3rem;
+      font-weight: 500;
+      color: var(--text);
+    }
+
+    .framing-stat-label {
+      font-size: 0.7rem;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+
+    .framing-markers-wrap {
+      grid-column: 1 / -1;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-top: 4px;
+    }
+
+    .framing-marker-tag {
+      font-family: 'DM Mono', monospace;
+      font-size: 0.68rem;
+      padding: 3px 10px;
+      border-radius: 12px;
+      background: rgba(230, 126, 34, 0.1);
+      color: #E67E22;
+      border: 1px solid rgba(230, 126, 34, 0.25);
+    }
+
+    /* ── Home Page ── */
+    .nav-buttons {
+      display: flex;
+      gap: 6px;
+      margin-left: auto;
+    }
+
+    .nav-btn {
+      font-family: 'DM Mono', monospace;
+      font-size: 0.78rem;
+      padding: 7px 18px;
+      border-radius: 20px;
+      border: 1px solid var(--border);
+      background: transparent;
+      color: var(--muted);
+      cursor: pointer;
+      transition: all 0.25s ease;
+    }
+
+    .nav-btn:hover {
+      border-color: var(--accent);
+      color: var(--text);
+    }
+
+    .nav-btn.active {
+      background: rgba(74, 158, 255, 0.15);
+      border-color: var(--accent);
+      color: var(--accent);
+    }
+
+    .page-container {
+      display: none;
+      animation: pageFadeIn 0.35s ease;
+    }
+
+    .page-container.visible {
+      display: block;
+    }
+
+    @keyframes pageFadeIn {
+      from { opacity: 0; transform: translateY(8px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    /* Home page layout */
+    .home-page {
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 40px 48px 80px;
+    }
+
+    .home-hero {
+      text-align: center;
+      margin-bottom: 36px;
+    }
+
+    .home-hero h1 {
+      font-size: 1.6rem;
+      font-weight: 500;
+      color: var(--text);
+      margin-bottom: 6px;
+    }
+
+    .home-hero p {
+      font-size: 0.85rem;
+      color: var(--muted);
+      max-width: 500px;
+      margin: 0 auto;
+      line-height: 1.5;
+    }
+
+    .topic-tabs {
+      display: flex;
+      justify-content: center;
+      gap: 8px;
+      margin-bottom: 32px;
+    }
+
+    .topic-tab {
+      font-family: 'DM Sans', sans-serif;
+      font-size: 0.84rem;
+      font-weight: 500;
+      padding: 9px 24px;
+      border-radius: 20px;
+      border: 1px solid var(--border);
+      background: transparent;
+      color: var(--muted);
+      cursor: pointer;
+      transition: all 0.25s ease;
+    }
+
+    .topic-tab:hover {
+      border-color: var(--accent);
+      color: var(--text);
+    }
+
+    .topic-tab.active {
+      background: var(--accent);
+      border-color: var(--accent);
+      color: #fff;
+    }
+
+    .topic-tab .tab-emoji {
+      margin-right: 4px;
+    }
+
+    .topic-tab.refresh-btn {
+      padding: 9px 16px;
+      font-size: 0.78rem;
+      opacity: 0.8;
+    }
+
+    .topic-tab.refresh-btn:hover {
+      opacity: 1;
+      border-color: var(--accent);
+      color: var(--accent);
+    }
+
+    .articles-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+      gap: 16px;
+    }
+
+    .article-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 20px;
+      cursor: pointer;
+      transition: all 0.25s ease;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      opacity: 0;
+      transform: translateY(8px);
+      animation: fadeUp 0.3s ease forwards;
+    }
+
+    .article-card:hover {
+      border-color: rgba(74, 158, 255, 0.4);
+      background: rgba(22, 34, 54, 0.9);
+      transform: translateY(-2px);
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+    }
+
+    .article-card-title {
+      font-size: 0.92rem;
+      font-weight: 500;
+      color: var(--text);
+      line-height: 1.45;
+      display: -webkit-box;
+      -webkit-line-clamp: 3;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+    }
+
+    .article-card-snippet {
+      font-size: 0.78rem;
+      color: var(--muted);
+      line-height: 1.5;
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+    }
+
+    .article-card-meta {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-top: auto;
+      padding-top: 8px;
+      border-top: 1px solid var(--border);
+    }
+
+    .pub-name {
+      font-family: 'DM Mono', monospace;
+      font-size: 0.72rem;
+      color: var(--text);
+      flex: 1;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .pub-bias-tag {
+      font-family: 'DM Mono', monospace;
+      font-size: 0.62rem;
+      padding: 2px 8px;
+      border-radius: 10px;
+      white-space: nowrap;
+      flex-shrink: 0;
+    }
+
+    .pub-bias-tag.bias-left       { background: rgba(52,152,219,0.14); color: #3498DB; border: 1px solid rgba(52,152,219,0.3); }
+    .pub-bias-tag.bias-lean-left  { background: rgba(93,173,226,0.14); color: #5DADE2; border: 1px solid rgba(93,173,226,0.3); }
+    .pub-bias-tag.bias-center     { background: rgba(149,165,166,0.14); color: #BDC3C7; border: 1px solid rgba(149,165,166,0.3); }
+    .pub-bias-tag.bias-lean-right { background: rgba(230,126,34,0.14); color: #E67E22; border: 1px solid rgba(230,126,34,0.3); }
+    .pub-bias-tag.bias-right      { background: rgba(231,76,60,0.14);  color: #E74C3C; border: 1px solid rgba(231,76,60,0.3); }
+    .pub-bias-tag.bias-unrated    { background: rgba(52,73,94,0.14);   color: #7F8C8D; border: 1px solid rgba(52,73,94,0.3); }
+
+    .article-age {
+      font-family: 'DM Mono', monospace;
+      font-size: 0.65rem;
+      color: var(--muted);
+      flex-shrink: 0;
+    }
+
+    /* Shimmer loading */
+    .shimmer-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .shimmer-line {
+      height: 14px;
+      border-radius: 4px;
+      background: linear-gradient(90deg, var(--border) 25%, rgba(74,158,255,0.08) 50%, var(--border) 75%);
+      background-size: 200% 100%;
+      animation: shimmer 1.5s infinite;
+    }
+
+    .shimmer-line.w80 { width: 80%; }
+    .shimmer-line.w60 { width: 60%; }
+    .shimmer-line.w40 { width: 40%; }
+    .shimmer-line.h10 { height: 10px; }
+
+    @keyframes shimmer {
+      0%   { background-position: 200% 0; }
+      100% { background-position: -200% 0; }
+    }
+
+    .home-error {
+      text-align: center;
+      padding: 40px;
+      color: var(--muted);
+      font-size: 0.85rem;
+    }
+
+    .tagline {
+      font-size: 0.78rem;
+      color: var(--muted);
+      font-weight: 300;
+    }
+
     @media (max-width: 700px) {
       .top-panel { grid-template-columns: 1fr; }
       .score-side { flex-direction: row; flex-wrap: wrap; justify-content: center; }
       main { padding: 24px 20px 60px; }
       header { padding: 16px 20px; }
+      .xref-grid { grid-template-columns: 1fr; }
+      .home-page { padding: 24px 20px 60px; }
+      .articles-grid { grid-template-columns: 1fr; }
+      .nav-buttons { margin-left: 0; }
     }
   </style>
 </head>
@@ -374,8 +1149,41 @@
 <header>
   <div class="logo">Beyond<span>Binary</span></div>
   <div class="tagline">Multi-dimensional media credibility analysis</div>
+  <div class="nav-buttons">
+    <button class="nav-btn active" id="navHome" onclick="showPage('home')">🏠 Home</button>
+    <button class="nav-btn" id="navAnalyzer" onclick="showPage('analyzer')">🔬 Analyzer</button>
+  </div>
 </header>
 
+<!-- ═══ HOME PAGE ═══ -->
+<div class="page-container visible" id="pageHome">
+  <div class="home-page">
+    <div class="home-hero">
+      <h1>Trending Headlines</h1>
+      <p>Real-time news across the spectrum — see who's reporting what, and from which angle.</p>
+    </div>
+
+    <div class="topic-tabs">
+      <button class="topic-tab active" data-topic="politics" onclick="switchTopic('politics')">
+        <span class="tab-emoji">🏛️</span> Politics
+      </button>
+      <button class="topic-tab" data-topic="sports" onclick="switchTopic('sports')">
+        <span class="tab-emoji">⚽</span> Sports
+      </button>
+      <button class="topic-tab" data-topic="tech" onclick="switchTopic('tech')">
+        <span class="tab-emoji">💻</span> Tech
+      </button>
+      <button class="topic-tab refresh-btn" title="Refresh trending stories" onclick="refreshTrending()">
+        <span>🔄</span> Refresh
+      </button>
+    </div>
+
+    <div class="articles-grid" id="articlesGrid"></div>
+  </div>
+</div>
+
+<!-- ═══ ANALYZER PAGE ═══ -->
+<div class="page-container" id="pageAnalyzer">
 <main>
   <div class="top-panel">
 
@@ -398,14 +1206,52 @@
         <div class="pill"><span>Claims extracted</span><span class="pill-val" id="pillClaims">—</span></div>
         <div class="pill"><span>Supported</span><span class="pill-val" id="pillSupported" style="color:var(--supported)">—</span></div>
         <div class="pill"><span>Refuted</span><span class="pill-val" id="pillRefuted" style="color:var(--refuted)">—</span></div>
+        <div class="pill"><span>Misleading framing</span><span class="pill-val" id="pillFraming" style="color:#E67E22">—</span></div>
         <div class="pill"><span>Insufficient evidence</span><span class="pill-val" id="pillNeutral" style="color:var(--neutral)">—</span></div>
+      </div>
+
+      <!-- Political Bias Spectrum Card -->
+      <div class="bias-card" id="biasCard">
+        <div class="bias-header">
+          <span>Political Spectrum</span>
+          <span class="bias-badge" id="biasBadge">awaiting input</span>
+        </div>
+        <div class="spectrum-wrap">
+          <div class="spectrum-track">
+            <div class="spectrum-pin" id="spectrumPin" style="left: 50%;"></div>
+          </div>
+          <div class="spectrum-labels">
+            <span>LEFT</span>
+            <span>CENTER</span>
+            <span>RIGHT</span>
+          </div>
+        </div>
+        <div class="bias-details">
+          <div class="pill"><span>Publisher</span><span class="pill-val" id="biasDomain">—</span></div>
+          <div class="pill"><span>Stance Model</span><span class="pill-val" id="biasStance">—</span></div>
+          <div class="pill"><span>Loaded Language</span><span class="pill-val" id="biasLoaded">—</span></div>
+          <div class="pill" id="biasCoverageRow" style="display:none"><span>Brave Coverage</span><span class="pill-val" id="biasCoverage">—</span></div>
+        </div>
       </div>
     </div>
 
     <!-- Input -->
     <div class="input-side">
-      <label>Paste article text below</label>
-      <textarea id="articleInput" placeholder="Paste a news article or paragraph here. BeyondBinary will extract factual claims, verify each against a Wikipedia evidence base, and return a credibility score with per-claim verdicts."></textarea>
+      <div class="url-input-wrap">
+        <label for="urlInput">Article URL (optional · auto-extracts content & domain)</label>
+        <div class="url-input-row">
+          <input type="url" id="urlInput" placeholder="https://www.reuters.com/... or paste news article link" />
+          <button class="btn-secondary" id="fetchUrlBtn" onclick="fetchArticleUrl()">Fetch Article</button>
+        </div>
+      </div>
+
+      <div id="articleMetaBanner" class="article-meta-banner" style="display:none">
+        <div class="meta-title" id="articleMetaTitle"></div>
+        <div class="meta-domain" id="articleMetaDomain"></div>
+      </div>
+
+      <label for="articleInput">Article text (or paste directly)</label>
+      <textarea id="articleInput" placeholder="Paste a news article, paragraph, or article URL here. BeyondBinary will extract factual claims, verify evidence with Brave Web Search, and analyze political bias, framing, and outlet credibility."></textarea>
       <div class="btn-row">
         <button class="btn-primary" id="analyzeBtn" onclick="analyze()">Analyze</button>
         <button class="btn-ghost" onclick="reset()">Clear</button>
@@ -426,9 +1272,180 @@
       <span class="hint">backend must be running on localhost:8000</span>
     </div>
   </div>
+
+  <!-- Cross-Reference Framing & Source Coverage -->
+  <div class="xref-section" id="xrefSection">
+    <div class="xref-header">Cross-Reference Framing & Source Coverage</div>
+    <div class="xref-grid">
+      <!-- Distribution visualization -->
+      <div class="xref-dist-card">
+        <div class="xref-card-title">📊 Source Coverage Distribution</div>
+        <div class="dist-bar-wrap">
+          <div class="dist-stacked-bar" id="distStackedBar"></div>
+          <div class="dist-legend" id="distLegend"></div>
+          <div class="dist-summary" id="distSummary"></div>
+        </div>
+      </div>
+
+      <!-- Per-source outlet list -->
+      <div class="xref-sources-card">
+        <div class="xref-card-title">🔗 Evidence Sources by Outlet</div>
+        <div class="source-outlet-list" id="outletList"></div>
+      </div>
+
+      <!-- Aggregate framing stats -->
+      <div class="xref-framing-agg">
+        <div class="xref-card-title">⚠️ Aggregate Framing Analysis</div>
+        <div class="framing-agg-grid" id="framingAggGrid"></div>
+      </div>
+    </div>
+  </div>
 </main>
+</div>
 
 <script>
+  // ── Page Navigation ──
+  let currentPage = 'home';
+  let trendingCache = {};
+  let currentTopic = 'politics';
+
+  function showPage(page) {
+    currentPage = page;
+    document.getElementById('pageHome').classList.toggle('visible', page === 'home');
+    document.getElementById('pageAnalyzer').classList.toggle('visible', page === 'analyzer');
+    document.getElementById('navHome').classList.toggle('active', page === 'home');
+    document.getElementById('navAnalyzer').classList.toggle('active', page === 'analyzer');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+
+    if (page === 'home' && Object.keys(trendingCache).length === 0) {
+      fetchTrending();
+    }
+  }
+
+  // ── Trending Feed ──
+  function showShimmer() {
+    const grid = document.getElementById('articlesGrid');
+    grid.innerHTML = '';
+    for (let i = 0; i < 6; i++) {
+      grid.innerHTML += `
+        <div class="shimmer-card">
+          <div class="shimmer-line w80"></div>
+          <div class="shimmer-line w60"></div>
+          <div class="shimmer-line w40 h10"></div>
+        </div>
+      `;
+    }
+  }
+
+  async function fetchTrending() {
+    if (window.isTrendingLoading) return;
+    window.isTrendingLoading = true;
+
+    showShimmer();
+    try {
+      const res = await fetch('http://127.0.0.1:8000/trending');
+      const data = await res.json();
+      if (data.error) {
+        document.getElementById('articlesGrid').innerHTML = `<div class="home-error">⚠️ ${escapeHtml(data.error)}</div>`;
+        return;
+      }
+      trendingCache = data.topics || {};
+      renderTopic(currentTopic);
+    } catch (err) {
+      document.getElementById('articlesGrid').innerHTML = `
+        <div class="home-error">
+          Could not load trending articles.<br>
+          <span style="font-family:'DM Mono',monospace;font-size:0.75rem;color:var(--border)">Ensure backend is running on localhost:8000</span>
+        </div>
+      `;
+    } finally {
+      window.isTrendingLoading = false;
+    }
+  }
+
+  function switchTopic(topic) {
+    currentTopic = topic;
+    document.querySelectorAll('.topic-tab').forEach(t => {
+      if (t.dataset.topic) {
+        t.classList.toggle('active', t.dataset.topic === topic);
+      }
+    });
+    if (trendingCache[topic] && trendingCache[topic].length > 0) {
+      renderTopic(topic);
+    } else {
+      fetchTrending();
+    }
+  }
+
+  function refreshTrending() {
+    trendingCache = {};
+    fetchTrending();
+  }
+
+  function biasClass(bias) {
+    return 'bias-' + (bias || 'unrated').toLowerCase().replace(/\s+/g, '-');
+  }
+
+  function renderTopic(topic) {
+    const grid = document.getElementById('articlesGrid');
+    const articles = trendingCache[topic] || [];
+
+    if (articles.length === 0) {
+      grid.innerHTML = '<div class="home-error">No articles found for this topic. Click Refresh to reload.</div>';
+      return;
+    }
+
+    grid.innerHTML = '';
+    articles.forEach((a, i) => {
+      const pub = a.publisher || {};
+      const biasLabel = pub.bias || 'Unrated';
+      const pubName = pub.name || pub.domain || 'Unknown';
+
+      const card = document.createElement('div');
+      card.className = 'article-card';
+      card.style.animationDelay = `${i * 0.06}s`;
+      card.onclick = () => openArticleInAnalyzer(a.url, a.title);
+      card.innerHTML = `
+        <div class="article-card-title">${escapeHtml(a.title)}</div>
+        ${a.snippet ? `<div class="article-card-snippet">${escapeHtml(a.snippet)}</div>` : ''}
+        <div class="article-card-meta">
+          <span class="pub-name">${escapeHtml(pubName)}</span>
+          <span class="pub-bias-tag ${biasClass(biasLabel)}">${escapeHtml(biasLabel)}</span>
+          ${a.age ? `<span class="article-age">${escapeHtml(a.age)}</span>` : ''}
+        </div>
+      `;
+      grid.appendChild(card);
+    });
+  }
+
+  async function openArticleInAnalyzer(url, title) {
+    // Switch to analyzer and scroll to top
+    showPage('analyzer');
+
+    // Set the URL
+    document.getElementById('urlInput').value = url;
+
+    // Show banner immediately
+    const banner = document.getElementById('articleMetaBanner');
+    document.getElementById('articleMetaTitle').textContent = title || 'Loading article...';
+    document.getElementById('articleMetaDomain').textContent = `Fetching from ${url}...`;
+    banner.style.display = 'flex';
+
+    // Fetch the article content into the analyzer
+    await fetchArticleUrl();
+
+    // Scroll smoothly to input so user sees loaded article
+    const inputArea = document.getElementById('articleInput');
+    if (inputArea) {
+      inputArea.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+  }
+
+  // Auto-load trending on page load
+  document.addEventListener('DOMContentLoaded', () => {
+    fetchTrending();
+  });
+
   const CIRCUMFERENCE = 2 * Math.PI * 100; // 628.3
 
   function setScore(score) {
@@ -464,53 +1481,87 @@
     return 'verdict-' + v.replace(/\s+/g, '-');
   }
 
+  function escapeHtml(str) {
+    if (!str) return '';
+    const div = document.createElement('div');
+    div.textContent = str;
+    return div.innerHTML;
+  }
+
   function renderClaims(claims) {
     const list = document.getElementById('claimsList');
     list.innerHTML = '';
 
     if (!claims || claims.length === 0) {
       list.innerHTML = '<div class="empty-state">No check-worthy claims extracted from the provided text.</div>';
-      ['pillClaims','pillSupported','pillRefuted','pillNeutral'].forEach(id => {
+      ['pillClaims','pillSupported','pillRefuted','pillFraming','pillNeutral'].forEach(id => {
         document.getElementById(id).textContent = '0';
       });
       return;
     }
 
-    let supported = 0, refuted = 0, neutral = 0;
+    let supported = 0, refuted = 0, framing = 0, neutral = 0;
 
     claims.forEach((c, i) => {
       if (c.verdict === 'Supported') supported++;
       else if (c.verdict === 'Refuted') refuted++;
+      else if (c.verdict === 'Misleading-Framing') framing++;
       else neutral++;
 
       const conf = c.confidence ?? 1;
       const confPct = Math.round(conf * 100);
-      const confColor = c.verdict === 'Supported' ? 'var(--supported)'
-                      : c.verdict === 'Refuted'   ? 'var(--refuted)'
+      const confColor = c.verdict === 'Supported'          ? 'var(--supported)'
+                      : c.verdict === 'Refuted'            ? 'var(--refuted)'
+                      : c.verdict === 'Misleading-Framing' ? '#E67E22'
                       : 'var(--neutral)';
 
       const evidenceText = Array.isArray(c.evidence)
         ? c.evidence[0]
         : (c.evidence || 'No evidence retrieved.');
 
+      const sourceBadgeHtml = c.retrieval_source
+        ? `<span class="source-badge">${escapeHtml(c.retrieval_source)}</span>`
+        : '';
+
+      let framingAlertHtml = '';
+      if (c.framing_analysis && c.framing_analysis.is_misleading) {
+        framingAlertHtml = `
+          <div class="framing-alert">
+            <strong>⚠️ Framing Analysis:</strong> ${escapeHtml(c.framing_analysis.explanation)}
+          </div>
+        `;
+      }
+
+      let sourcesHtml = '';
+      if (Array.isArray(c.sources) && c.sources.length > 0) {
+        const validSources = c.sources.filter(s => s && s.url);
+        if (validSources.length > 0) {
+          sourcesHtml = '<div style="margin-top:8px; display:flex; flex-wrap:wrap; gap:6px;">' +
+            validSources.map(s => `<a href="${escapeHtml(s.url)}" target="_blank" rel="noopener noreferrer" class="source-link">🔗 ${escapeHtml(s.title || 'Source')}</a>`).join('') +
+            '</div>';
+        }
+      }
+
       const card = document.createElement('div');
       card.className = 'claim-card';
       card.style.animationDelay = `${i * 0.07}s`;
       card.innerHTML = `
         <div>
-          <div class="claim-text">${c.claim}</div>
+          <div class="claim-text">${escapeHtml(c.claim)} ${sourceBadgeHtml}</div>
           <div class="confidence-bar-wrap">
             <div class="confidence-bar-bg">
               <div class="confidence-bar-fill" style="width:${confPct}%;background:${confColor}"></div>
             </div>
             <div class="confidence-label">${confPct}% confidence</div>
           </div>
+          ${framingAlertHtml}
           <div style="margin-top:12px">
             <div class="evidence-label">Evidence</div>
-            <div class="evidence-text">${evidenceText}</div>
+            <div class="evidence-text">${escapeHtml(evidenceText)}</div>
+            ${sourcesHtml}
           </div>
         </div>
-        <div class="claim-verdict ${verdictClass(c.verdict)}">${c.verdict}</div>
+        <div class="claim-verdict ${verdictClass(c.verdict)}">${escapeHtml(c.verdict)}</div>
       `;
       list.appendChild(card);
     });
@@ -518,12 +1569,328 @@
     document.getElementById('pillClaims').textContent = claims.length;
     document.getElementById('pillSupported').textContent = supported;
     document.getElementById('pillRefuted').textContent = refuted;
+    document.getElementById('pillFraming').textContent = framing;
     document.getElementById('pillNeutral').textContent = neutral;
+  }
+
+  function setBias(biasData) {
+    if (!biasData) return;
+
+    const badge = document.getElementById('biasBadge');
+    const pin = document.getElementById('spectrumPin');
+
+    const label = biasData.bias_label || 'Center';
+    const score = biasData.spectrum_score ?? 0.0;
+    const scoreFormatted = (score > 0 ? `+${score.toFixed(2)}` : score.toFixed(2));
+
+    badge.className = 'bias-badge';
+    badge.textContent = `${label} (${scoreFormatted})`;
+
+    const labelKey = label.toLowerCase().replace(/\s+/g, '-');
+    badge.classList.add(labelKey);
+
+    // Map spectrum score (-1.0 to +1.0) -> (4% to 96%)
+    const pct = ((score + 1.0) / 2.0) * 100;
+    const clampedPct = Math.max(4, Math.min(96, pct));
+    pin.style.left = `${clampedPct}%`;
+
+    // Publisher / Domain grounding
+    const domainEl = document.getElementById('biasDomain');
+    if (biasData.domain_rating) {
+      domainEl.textContent = `${biasData.domain_rating.name} (${biasData.domain_rating.bias})`;
+      domainEl.style.color = 'var(--text)';
+    } else {
+      domainEl.textContent = 'Unspecified';
+      domainEl.style.color = 'var(--muted)';
+    }
+
+    // Stance model probabilities
+    const stanceEl = document.getElementById('biasStance');
+    if (biasData.stance && biasData.stance.probabilities) {
+      const p = biasData.stance.probabilities;
+      stanceEl.textContent = `L:${Math.round(p.left * 100)}% C:${Math.round(p.center * 100)}% R:${Math.round(p.right * 100)}%`;
+    } else {
+      stanceEl.textContent = '—';
+    }
+
+    // Loaded language
+    const loadedEl = document.getElementById('biasLoaded');
+    if (biasData.loaded_language) {
+      const ll = biasData.loaded_language;
+      loadedEl.textContent = `${ll.loaded_count} words (${ll.density_pct}%)`;
+      if (ll.density_pct > 3.0) {
+        loadedEl.style.color = 'var(--neutral)';
+      } else {
+        loadedEl.style.color = 'var(--text)';
+      }
+    } else {
+      loadedEl.textContent = '—';
+    }
+
+    // Cross-source coverage
+    const covRow = document.getElementById('biasCoverageRow');
+    const covEl = document.getElementById('biasCoverage');
+    if (biasData.cross_source && biasData.cross_source.total_sources > 0) {
+      const dist = biasData.cross_source.distribution;
+      const leftTotal = (dist['Left'] || 0) + (dist['Lean Left'] || 0);
+      const centerTotal = dist['Center'] || 0;
+      const rightTotal = (dist['Right'] || 0) + (dist['Lean Right'] || 0);
+      covEl.textContent = `${leftTotal} Left · ${centerTotal} Center · ${rightTotal} Right`;
+      covRow.style.display = 'flex';
+    } else {
+      covRow.style.display = 'none';
+    }
+  }
+
+  function renderCrossReference(biasData, claims) {
+    const section = document.getElementById('xrefSection');
+    const hasCrossSrc = biasData && biasData.cross_source && biasData.cross_source.total_sources > 0;
+    const hasFraming = claims && claims.some(c => c.framing_analysis && c.framing_analysis.is_misleading);
+
+    if (!hasCrossSrc && !hasFraming) {
+      section.style.display = 'none';
+      return;
+    }
+
+    section.style.display = 'block';
+
+    // ── Distribution Stacked Bar ──
+    if (hasCrossSrc) {
+      const dist = biasData.cross_source.distribution;
+      const total = biasData.cross_source.total_sources;
+      const segments = [
+        { key: 'Left',       cls: 'seg-left',       dot: 'dot-left',       count: dist['Left'] || 0 },
+        { key: 'Lean Left',  cls: 'seg-lean-left',  dot: 'dot-lean-left',  count: dist['Lean Left'] || 0 },
+        { key: 'Center',     cls: 'seg-center',     dot: 'dot-center',     count: dist['Center'] || 0 },
+        { key: 'Lean Right', cls: 'seg-lean-right', dot: 'dot-lean-right', count: dist['Lean Right'] || 0 },
+        { key: 'Right',      cls: 'seg-right',      dot: 'dot-right',      count: dist['Right'] || 0 },
+        { key: 'Unrated',    cls: 'seg-unrated',    dot: 'dot-unrated',    count: dist['Unrated'] || 0 }
+      ];
+
+      // Stacked bar
+      const barEl = document.getElementById('distStackedBar');
+      barEl.innerHTML = '';
+      segments.forEach(s => {
+        if (s.count === 0) return;
+        const pct = (s.count / total * 100);
+        const seg = document.createElement('div');
+        seg.className = `dist-segment ${s.cls}`;
+        seg.style.width = '0%';
+        seg.textContent = pct >= 12 ? `${s.key} ${s.count}` : (pct >= 6 ? s.count : '');
+        seg.title = `${s.key}: ${s.count} source${s.count !== 1 ? 's' : ''} (${pct.toFixed(0)}%)`;
+        barEl.appendChild(seg);
+        // Animate in
+        requestAnimationFrame(() => {
+          requestAnimationFrame(() => { seg.style.width = `${pct}%`; });
+        });
+      });
+
+      // Legend
+      const legendEl = document.getElementById('distLegend');
+      legendEl.innerHTML = segments
+        .filter(s => s.count > 0)
+        .map(s => `<div class="dist-legend-item"><div class="dist-legend-dot ${s.dot}"></div>${s.key}: ${s.count}</div>`)
+        .join('');
+
+      // Balance assessment
+      const leftCount = (dist['Left'] || 0) + (dist['Lean Left'] || 0);
+      const centerCount = dist['Center'] || 0;
+      const rightCount = (dist['Right'] || 0) + (dist['Lean Right'] || 0);
+      const rated = biasData.cross_source.total_rated || (leftCount + centerCount + rightCount);
+
+      let balanceLabel, balanceClass, balanceDesc;
+      if (rated === 0) {
+        balanceLabel = 'No rated sources';
+        balanceClass = 'leaning';
+        balanceDesc = 'None of the evidence sources could be matched to known media outlets.';
+      } else {
+        const leftPct = leftCount / rated;
+        const rightPct = rightCount / rated;
+        const imbalance = Math.abs(leftPct - rightPct);
+
+        if (imbalance < 0.2) {
+          balanceLabel = 'Balanced';
+          balanceClass = 'balanced';
+          balanceDesc = `Evidence is drawn relatively evenly across the political spectrum (${rated} rated sources).`;
+        } else if (imbalance < 0.5) {
+          const dir = leftPct > rightPct ? 'left-leaning' : 'right-leaning';
+          balanceLabel = `Slightly ${dir}`;
+          balanceClass = 'leaning';
+          balanceDesc = `Evidence sources lean slightly ${dir}. Consider cross-checking with ${leftPct > rightPct ? 'center or right-leaning' : 'center or left-leaning'} outlets.`;
+        } else {
+          const dir = leftPct > rightPct ? 'left' : 'right';
+          balanceLabel = `Skewed ${dir}`;
+          balanceClass = 'skewed';
+          balanceDesc = `Evidence sources are heavily skewed toward the ${dir}. This may introduce confirmation bias in verification.`;
+        }
+      }
+
+      document.getElementById('distSummary').innerHTML =
+        `<span class="balance-tag ${balanceClass}">${balanceLabel}</span> ${escapeHtml(balanceDesc)}`;
+
+      // ── Per-source outlet list ──
+      const outletEl = document.getElementById('outletList');
+      outletEl.innerHTML = '';
+      const sources = biasData.cross_source.sources || [];
+
+      if (sources.length === 0) {
+        outletEl.innerHTML = '<div style="font-size:0.78rem;color:var(--muted);padding:12px">No individual source data available.</div>';
+      } else {
+        // Deduplicate by domain, keep first
+        const seen = new Set();
+        const unique = sources.filter(s => {
+          if (seen.has(s.domain)) return false;
+          seen.add(s.domain);
+          return true;
+        });
+
+        unique.forEach(src => {
+          const biasKey = (src.bias || 'unrated').toLowerCase().replace(/\s+/g, '-');
+          const dotColor = {
+            'left': '#2980B9', 'lean-left': '#3498DB', 'center': '#7F8C8D',
+            'lean-right': '#E67E22', 'right': '#C0392B', 'unrated': '#34495E'
+          }[biasKey] || '#34495E';
+
+          const item = document.createElement('div');
+          item.className = 'outlet-item';
+          item.innerHTML = `
+            <div class="outlet-bias-dot" style="background:${dotColor}"></div>
+            <div class="outlet-info">
+              <div class="outlet-name">${escapeHtml(src.outlet || src.domain)}</div>
+              <div class="outlet-domain">${escapeHtml(src.domain)}</div>
+            </div>
+            <span class="outlet-bias-label ob-${biasKey}">${escapeHtml(src.bias || 'Unrated')}</span>
+            ${src.url ? `<a href="${escapeHtml(src.url)}" target="_blank" rel="noopener noreferrer" class="outlet-link" title="Open source">↗</a>` : ''}
+          `;
+          outletEl.appendChild(item);
+        });
+      }
+    } else {
+      document.getElementById('distStackedBar').innerHTML = '';
+      document.getElementById('distLegend').innerHTML = '';
+      document.getElementById('distSummary').innerHTML = '<span style="color:var(--muted)">No cross-source data available — evidence sources could not be mapped to rated outlets.</span>';
+      document.getElementById('outletList').innerHTML = '<div style="font-size:0.78rem;color:var(--muted);padding:12px">No source outlets to display.</div>';
+    }
+
+    // ── Aggregate Framing Stats ──
+    const aggGrid = document.getElementById('framingAggGrid');
+    aggGrid.innerHTML = '';
+
+    const totalClaims = (claims || []).length;
+    const framingClaims = (claims || []).filter(c => c.framing_analysis && c.framing_analysis.is_misleading);
+    const framingCount = framingClaims.length;
+
+    // Collect all unique markers
+    const allMarkers = new Set();
+    const framingTypes = {};
+    framingClaims.forEach(c => {
+      const fa = c.framing_analysis;
+      (fa.detected_markers || []).forEach(m => allMarkers.add(m));
+      const ft = fa.framing_type || 'Unknown';
+      framingTypes[ft] = (framingTypes[ft] || 0) + 1;
+    });
+
+    // Stats cards
+    const framingPct = totalClaims > 0 ? Math.round(framingCount / totalClaims * 100) : 0;
+    const statColor = framingPct === 0 ? 'var(--supported)' : framingPct <= 30 ? 'var(--neutral)' : 'var(--refuted)';
+
+    aggGrid.innerHTML += `
+      <div class="framing-stat-card">
+        <div class="framing-stat-value" style="color:${statColor}">${framingCount}/${totalClaims}</div>
+        <div class="framing-stat-label">Claims with misleading framing</div>
+      </div>
+      <div class="framing-stat-card">
+        <div class="framing-stat-value" style="color:${statColor}">${framingPct}%</div>
+        <div class="framing-stat-label">Framing rate</div>
+      </div>
+      <div class="framing-stat-card">
+        <div class="framing-stat-value">${allMarkers.size}</div>
+        <div class="framing-stat-label">Unique loaded markers</div>
+      </div>
+    `;
+
+    // Framing type breakdown
+    Object.entries(framingTypes).forEach(([type, count]) => {
+      aggGrid.innerHTML += `
+        <div class="framing-stat-card">
+          <div class="framing-stat-value" style="font-size:1rem">${count}</div>
+          <div class="framing-stat-label">${escapeHtml(type)}</div>
+        </div>
+      `;
+    });
+
+    // Marker tags
+    if (allMarkers.size > 0) {
+      const markersHtml = Array.from(allMarkers).sort()
+        .map(m => `<span class="framing-marker-tag">${escapeHtml(m)}</span>`)
+        .join('');
+      aggGrid.innerHTML += `<div class="framing-markers-wrap">${markersHtml}</div>`;
+    } else {
+      aggGrid.innerHTML += `<div class="framing-markers-wrap" style="color:var(--muted);font-size:0.75rem">No loaded language markers detected across claims.</div>`;
+    }
+  }
+
+  async function fetchArticleUrl() {
+    const urlInput = document.getElementById('urlInput');
+    const url = urlInput.value.trim();
+    if (!url) {
+      alert('Please enter an article URL.');
+      return;
+    }
+
+    const fetchBtn = document.getElementById('fetchUrlBtn');
+    const status = document.getElementById('statusText');
+    const errDiv = document.getElementById('errorMsg');
+
+    fetchBtn.disabled = true;
+    fetchBtn.textContent = 'Fetching...';
+    status.textContent = 'Extracting article content from URL...';
+    errDiv.style.display = 'none';
+
+    try {
+      const res = await fetch('http://127.0.0.1:8000/fetch-url', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ url })
+      });
+      const data = await res.json();
+
+      if (!res.ok || !data.success) {
+        throw new Error(data.error || 'Failed to extract article content.');
+      }
+
+      document.getElementById('articleInput').value = data.text;
+
+      const banner = document.getElementById('articleMetaBanner');
+      const titleEl = document.getElementById('articleMetaTitle');
+      const domainEl = document.getElementById('articleMetaDomain');
+
+      titleEl.textContent = data.title || 'Article Content Loaded';
+      domainEl.textContent = `Source: ${data.domain} (${data.word_count} words extracted)`;
+      banner.style.display = 'flex';
+
+      status.textContent = `✓ Extracted ${data.word_count} words from ${data.domain}`;
+      setTimeout(() => { status.textContent = ''; }, 4000);
+
+    } catch (err) {
+      status.textContent = '';
+      errDiv.style.display = 'block';
+      errDiv.className = 'error-msg';
+      errDiv.textContent = `Could not fetch article from URL: ${err.message}`;
+    } finally {
+      fetchBtn.disabled = false;
+      fetchBtn.textContent = 'Fetch Article';
+    }
   }
 
   async function analyze() {
     const text = document.getElementById('articleInput').value.trim();
-    if (!text) return;
+    const url = document.getElementById('urlInput').value.trim();
+
+    if (!text && !url) {
+      alert('Please paste article text or provide an article URL.');
+      return;
+    }
 
     const btn = document.getElementById('analyzeBtn');
     const status = document.getElementById('statusText');
@@ -540,26 +1907,41 @@
       const res = await fetch('http://127.0.0.1:8000/analyze', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ text })
+        body: JSON.stringify({ text, url: url || undefined })
       });
 
       if (!res.ok) throw new Error(`Server returned ${res.status}`);
       const data = await res.json();
 
-      status.textContent = `ClaimBuster · ${data.claims.length} claims · roberta-large-mnli · done`;
+      if (data.error) {
+        throw new Error(data.error);
+      }
+
+      if (data.title) {
+        const banner = document.getElementById('articleMetaBanner');
+        document.getElementById('articleMetaTitle').textContent = data.title;
+        document.getElementById('articleMetaDomain').textContent = data.source_url ? `URL: ${data.source_url}` : '';
+        banner.style.display = 'flex';
+      }
+
+      const searchLabel = data.search_provider || 'Brave Search';
+      status.textContent = `ClaimBuster · ${data.claims.length} claims · ${searchLabel} · political bias · done`;
       setTimeout(() => { status.textContent = ''; }, 4000);
-      setTimeout(() => { status.textContent = ''; }, 2000);
 
       setScore(data.credibility_score);
       setVerdict(data.credibility_score);
+      if (data.bias_analysis) {
+        setBias(data.bias_analysis);
+      }
       renderClaims(data.claims);
+      renderCrossReference(data.bias_analysis, data.claims);
       document.getElementById('claimsHeader').style.display = 'block';
 
     } catch (err) {
       status.textContent = '';
       errDiv.style.display = 'block';
       errDiv.className = 'error-msg';
-      errDiv.textContent = `Could not reach backend. Make sure your FastAPI server is running on port 8000. (${err.message})`;
+      errDiv.textContent = `Could not process analysis. Make sure FastAPI server is running on port 8000. (${err.message})`;
     } finally {
       btn.disabled = false;
       btn.textContent = 'Analyze';
@@ -568,6 +1950,8 @@
 
   function reset() {
     document.getElementById('articleInput').value = '';
+    document.getElementById('urlInput').value = '';
+    document.getElementById('articleMetaBanner').style.display = 'none';
     document.getElementById('scoreNumber').textContent = '—';
     document.getElementById('verdictBadge').className = 'verdict-badge';
     document.getElementById('verdictBadge').textContent = 'awaiting input';
@@ -576,9 +1960,28 @@
     document.getElementById('claimsList').innerHTML = '<div class="empty-state">Enter article text and click Analyze to begin.<br><span class="hint">backend must be running on localhost:8000</span></div>';
     document.getElementById('claimsHeader').style.display = 'none';
     document.getElementById('errorMsg').style.display = 'none';
-    ['pillClaims','pillSupported','pillRefuted','pillNeutral'].forEach(id => {
+    ['pillClaims','pillSupported','pillRefuted','pillFraming','pillNeutral'].forEach(id => {
       document.getElementById(id).textContent = '—';
     });
+
+    // Reset bias spectrum
+    document.getElementById('biasBadge').className = 'bias-badge';
+    document.getElementById('biasBadge').textContent = 'awaiting input';
+    document.getElementById('spectrumPin').style.left = '50%';
+    document.getElementById('biasDomain').textContent = '—';
+    document.getElementById('biasDomain').style.color = 'var(--text)';
+    document.getElementById('biasStance').textContent = '—';
+    document.getElementById('biasLoaded').textContent = '—';
+    document.getElementById('biasLoaded').style.color = 'var(--text)';
+    document.getElementById('biasCoverageRow').style.display = 'none';
+
+    // Reset cross-reference section
+    document.getElementById('xrefSection').style.display = 'none';
+    document.getElementById('distStackedBar').innerHTML = '';
+    document.getElementById('distLegend').innerHTML = '';
+    document.getElementById('distSummary').innerHTML = '';
+    document.getElementById('outletList').innerHTML = '';
+    document.getElementById('framingAggGrid').innerHTML = '';
   }
 </script>
 </body>

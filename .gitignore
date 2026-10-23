@@ -1,0 +1,15 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Environment variables
+.env
+
+# Local test pipeline
+test_pipeline.py
+
+# Virtual environments
+venv/
+env/
+.venv/

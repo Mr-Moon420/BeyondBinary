@@ -12,6 +12,7 @@ import {
   Edit3,
   Flame,
   Sparkles,
+  Lightbulb,
   X
 } from 'lucide-react';
 import type { VerifiedClaim } from '../../types/api';
@@ -411,6 +412,56 @@ export const ArticleReader: FC<ArticleReaderProps> = ({
           <p className="text-xs font-editorial font-bold text-stone-900 mb-2.5">
             "{selectedClaim.claim}"
           </p>
+
+          {/* XAI Neural Diagnostic Rationale */}
+          {selectedClaim.xai_rationale && (
+            <div className="mb-3 p-3 bg-stone-900 text-white rounded border border-stone-800 text-xs">
+              <div className="flex items-center justify-between gap-2 pb-1.5 border-b border-stone-700 mb-1.5">
+                <div className="flex items-center gap-1.5 text-amber-400">
+                  <Lightbulb className="w-3.5 h-3.5 fill-current" />
+                  <span className="text-[10px] font-mono-data font-bold uppercase tracking-wider">
+                    XAI Explainability Rationale
+                  </span>
+                </div>
+                <span className="text-[9px] font-mono-data px-1.5 py-0.5 rounded bg-stone-800 text-stone-300 border border-stone-700 font-semibold">
+                  {selectedClaim.xai_rationale.category}
+                </span>
+              </div>
+
+              <p className="text-[11px] font-sans text-stone-200 leading-relaxed italic">
+                "{selectedClaim.xai_rationale.rationale}"
+              </p>
+
+              {selectedClaim.xai_rationale.conflict_diff && selectedClaim.xai_rationale.conflict_diff.length > 0 && (
+                <div className="mt-2 pt-1.5 border-t border-stone-800 flex flex-wrap gap-1.5 items-center">
+                  <span className="text-[9px] font-mono-data text-stone-400 uppercase tracking-wider">
+                    Conflict Diff:
+                  </span>
+                  {selectedClaim.xai_rationale.conflict_diff.map((diff, i) => (
+                    <span key={i} className="inline-flex items-center gap-1 text-[10px] font-mono-data bg-stone-800 px-2 py-0.5 rounded border border-stone-700">
+                      <span className="text-stone-400">{diff.type}:</span>
+                      <span className="text-rose-400 line-through">{diff.claim_val}</span>
+                      <span className="text-stone-500">≠</span>
+                      <span className="text-emerald-400 font-semibold">{diff.evidence_val}</span>
+                    </span>
+                  ))}
+                </div>
+              )}
+
+              {selectedClaim.xai_rationale.alignment_entities && selectedClaim.xai_rationale.alignment_entities.length > 0 && (
+                <div className="mt-2 pt-1.5 border-t border-stone-800 flex flex-wrap gap-1 items-center">
+                  <span className="text-[9px] font-mono-data text-stone-400 uppercase tracking-wider mr-1">
+                    Corroborating Anchors:
+                  </span>
+                  {selectedClaim.xai_rationale.alignment_entities.map((ent, i) => (
+                    <span key={i} className="text-[10px] font-mono-data bg-emerald-950 text-emerald-300 border border-emerald-800 px-1.5 py-0.5 rounded">
+                      ✓ {ent}
+                    </span>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
 
           {/* Corroborating Evidence Snippet */}
           {selectedClaim.evidence && (

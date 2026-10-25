@@ -2,7 +2,8 @@
 """
 Verifier module for BeyondBinary.
 Performs semantic retrieval against local FAISS index, multi-tier real-time web/wiki
-evidence retrieval via search_provider, and NLI inference with RoBERTa-large-MNLI.
+evidence retrieval via search_provider, NLI inference with RoBERTa-large-MNLI,
+and transparent Explainable AI (XAI) rationale synthesis.
 """
 
 import os
@@ -17,6 +18,7 @@ from transformers import pipeline
 
 from search_provider import fetch_web_evidence, get_search_provider
 from bias_detector import evaluate_claim_framing
+from xai_explainer import explain_verification
 
 logger = logging.getLogger("BeyondBinary.Verifier")
 if not logger.handlers:
@@ -37,7 +39,6 @@ def get_nli():
     global _nli
     if _nli is None:
         logger.info("Initializing RoBERTa NLI pipeline (roberta-large-mnli)...")
-        # Standard loading without low_cpu_mem_usage to prevent Windows OS paging file errors
         _nli = pipeline("text-classification", model="roberta-large-mnli")
     return _nli
 
@@ -66,6 +67,7 @@ def verify_claim(claim: str) -> Dict[str, Any]:
        gracefully tags as 'Not Enough Info' rather than hallucinating refutation.
     4. Runs premise/hypothesis NLI classification with RoBERTa-large-MNLI.
     5. Computes calibrated verdict and confidence score.
+    6. Generates Explainable AI (XAI) rationale and entity-level diagnostic diffs.
     """
     embedding = get_embedder().encode([claim]).astype("float32")
     distances, indices = index.search(embedding, k=2)
@@ -97,9 +99,15 @@ def verify_claim(claim: str) -> Dict[str, Any]:
             ]
             retrieval_source = "Local FAISS Index"
         else:
-            # Distance is too high (> 0.85) and no web evidence could be retrieved.
-            # Avoid feeding an irrelevant passage to RoBERTa to prevent false contradictions.
             logger.info("Claim has no corroborating local or web evidence (FAISS dist %.3f > 0.85)", dist_val)
+            xai_info = explain_verification(
+                claim=claim,
+                verdict="Not Enough Info",
+                confidence=0.50,
+                evidence=[],
+                retrieval_source="Unverified (Insufficient Corroboration)",
+                framing_info=None
+            )
             return {
                 "claim": claim,
                 "verdict": "Not Enough Info",
@@ -113,7 +121,8 @@ def verify_claim(claim: str) -> Dict[str, Any]:
                     "detected_markers": [],
                     "density_pct": 0.0,
                     "explanation": "No authoritative corroborating evidence was found in the local archive or live web."
-                }
+                },
+                "xai_rationale": xai_info
             }
 
     # Evaluate evidence against claim using RoBERTa NLI (Premise: evidence, Hypothesis: claim)
@@ -139,6 +148,14 @@ def verify_claim(claim: str) -> Dict[str, Any]:
             logger.warning("NLI classification failed for snippet: %s", e)
 
     if not verdicts:
+        xai_info = explain_verification(
+            claim=claim,
+            verdict="Not Enough Info",
+            confidence=0.50,
+            evidence=evidence,
+            retrieval_source=retrieval_source,
+            framing_info=None
+        )
         return {
             "claim": claim,
             "verdict": "Not Enough Info",
@@ -152,7 +169,8 @@ def verify_claim(claim: str) -> Dict[str, Any]:
                 "detected_markers": [],
                 "density_pct": 0.0,
                 "explanation": "NLI evaluation could not score the retrieved snippets."
-            }
+            },
+            "xai_rationale": xai_info
         }
 
     # Evaluate claim framing (loaded rhetoric, evidence divergence, sensationalism)
@@ -191,6 +209,16 @@ def verify_claim(claim: str) -> Dict[str, Any]:
         winning_scores = verdict_scores.get(target_label, confidences)
         avg_confidence = round(sum(winning_scores) / len(winning_scores), 3) if winning_scores else 0.70
 
+    # Generate Explainable AI (XAI) rationale and entity-level diagnostics
+    xai_info = explain_verification(
+        claim=claim,
+        verdict=mapped_verdict,
+        confidence=avg_confidence,
+        evidence=evidence,
+        retrieval_source=retrieval_source,
+        framing_info=framing_info
+    )
+
     return {
         "claim": claim,
         "verdict": mapped_verdict,
@@ -198,5 +226,6 @@ def verify_claim(claim: str) -> Dict[str, Any]:
         "evidence": evidence,
         "sources": sources,
         "retrieval_source": retrieval_source,
-        "framing_analysis": framing_info
+        "framing_analysis": framing_info,
+        "xai_rationale": xai_info
     }

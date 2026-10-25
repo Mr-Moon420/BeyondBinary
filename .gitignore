@@ -13,3 +13,5 @@ test_pipeline.py
 venv/
 env/
 .venv/
+
+scratch/

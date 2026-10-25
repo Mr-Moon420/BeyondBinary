@@ -18,6 +18,20 @@ export interface FramingAnalysis {
   explanation: string;
 }
 
+export interface XAIEntityDiff {
+  type: string;
+  claim_val: string;
+  evidence_val: string;
+}
+
+export interface XAIRationale {
+  category: string;
+  rationale: string;
+  conflict_diff?: XAIEntityDiff[];
+  alignment_entities?: string[];
+  flagged_markers?: string[];
+}
+
 export interface VerifiedClaim {
   claim: string;
   verdict: 'Supported' | 'Refuted' | 'Misleading-Framing' | 'Not Enough Info';
@@ -26,6 +40,7 @@ export interface VerifiedClaim {
   sources?: EvidenceSource[];
   retrieval_source: string;
   framing_analysis?: FramingAnalysis;
+  xai_rationale?: XAIRationale;
 }
 
 export interface DomainRating {

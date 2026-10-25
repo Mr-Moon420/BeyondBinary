@@ -38,7 +38,6 @@ BeyondBinary/
 │   ├── fever_index.faiss        # 384-dimensional FAISS index for semantic retrieval
 │   ├── passages.pkl             # Reference knowledge passages
 │   ├── allsides_ratings.json    # AllSides Media Intelligence database (101 outlets)
-│   └── allowed_publications.json# Whitelisted trusted publications
 │
 ├── scripts/                     # Maintenance & Evaluation Utilities
 │   └── build_index.py           # Offline FAISS index builder

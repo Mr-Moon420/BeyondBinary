@@ -47,7 +47,6 @@ BeyondBinary/
 │   ├── fever_index.faiss        # FAISS vector index
 │   ├── passages.pkl             # Reference knowledge passages
 │   ├── allsides_ratings.json    # AllSides media rating database
-│   └── allowed_publications.json# Whitelisted trusted publications
 │
 ├── scripts/                     # Developer utilities & test scripts
 │   └── build_index.py           # Offline FAISS index generator

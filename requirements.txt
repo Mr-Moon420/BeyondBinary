@@ -11,3 +11,5 @@ torch>=2.2.0
 numpy>=1.26.0
 lxml>=5.0.0
 googlenewsdecoder>=0.2.2
+playwright>=1.40.0
+playwright-stealth>=1.0.6

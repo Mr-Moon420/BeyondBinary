@@ -1,4 +1,3 @@
-# allowed_publications.json
 {
   "description": "Whitelist of news publications known to be compatible with current fetching tiers.",
   "publications": [

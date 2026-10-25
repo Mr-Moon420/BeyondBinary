@@ -1,0 +1,57 @@
+@import "tailwindcss";
+
+@layer base {
+  :root {
+    --font-serif: 'Newsreader', Georgia, Cambria, serif;
+    --font-sans: 'Inter', system-ui, -apple-system, sans-serif;
+    --font-mono: 'JetBrains Mono', monospace;
+  }
+
+  body {
+    background-color: #FBFBFA;
+    color: #18181B;
+    font-family: var(--font-sans);
+    letter-spacing: -0.01em;
+  }
+}
+
+.font-editorial {
+  font-family: var(--font-serif);
+}
+
+.font-mono-data {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+}
+
+/* Crisp Paper Card */
+.editorial-card {
+  background: #FFFFFF;
+  border: 1px solid #E4E4E7;
+  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.03), 0 1px 2px -1px rgba(0, 0, 0, 0.03);
+}
+
+.editorial-card:hover {
+  border-color: #D4D4D8;
+}
+
+/* Subtle newspaper double-line rule */
+.double-rule {
+  border-top: 3px double #D4D4D8;
+}
+
+/* Custom Scrollbars */
+::-webkit-scrollbar {
+  width: 5px;
+  height: 5px;
+}
+::-webkit-scrollbar-track {
+  background: #F4F4F5;
+}
+::-webkit-scrollbar-thumb {
+  background: #D4D4D8;
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #A1A1AA;
+}

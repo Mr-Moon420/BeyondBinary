@@ -80,3 +80,23 @@ The BeyondBinary pipeline follows a sequential flow to transform a URL or text i
    - Combines the publisher's historical bias (AllSides) with a real-time linguistic analysis of the text.
 7. **Aggregation**: 
    - Calculates the final **Credibility Score** and **Bias Label** to produce the final output.
+
+## 💻 Frontend Application
+
+BeyondBinary features a modern, editorial-grade React 19 + TypeScript + Vite + Tailwind CSS dashboard located in rontend/.
+
+### Development:
+`ash
+# Terminal 1: Backend API
+.\venv\Scripts\uvicorn.exe main:app --host 127.0.0.1 --port 8000 --reload
+
+# Terminal 2: React Dev Server (Vite)
+cd frontend
+npm run dev
+`
+
+### Production:
+When rontend/dist is built (cd frontend && npm run build), the FastAPI server automatically serves the compiled React application directly at:
+`
+http://127.0.0.1:8000/
+`

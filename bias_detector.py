@@ -38,22 +38,27 @@ if os.path.exists(ALLSIDES_FILE):
 else:
     logger.warning("allsides_ratings.json not found at %s", ALLSIDES_FILE)
 
-# Load Stance Classifier (BERT fine-tuned for Left/Center/Right political bias)
 MODEL_NAME = "theArif/mbzuai-political-bias-bert"
-logger.info("Loading political bias model '%s'...", MODEL_NAME)
+_bias_classifier = None
 
-try:
-    bias_classifier = pipeline(
-        "text-classification",
-        model=MODEL_NAME,
-        top_k=None,
-        truncation=True,
-        max_length=512
-    )
-    logger.info("Political bias model loaded successfully.")
-except Exception as e:
-    logger.error("Failed to load political bias model '%s': %s", MODEL_NAME, e)
-    bias_classifier = None
+def get_bias_classifier():
+    global _bias_classifier
+    if _bias_classifier is None:
+        logger.info("Loading political bias model '%s'...", MODEL_NAME)
+        try:
+            _bias_classifier = pipeline(
+                "text-classification",
+                model=MODEL_NAME,
+                top_k=None,
+                truncation=True,
+                max_length=512,
+                low_cpu_mem_usage=True
+            )
+            logger.info("Political bias model loaded successfully.")
+        except Exception as e:
+            logger.error("Failed to load political bias model '%s': %s", MODEL_NAME, e)
+            _bias_classifier = None
+    return _bias_classifier
 
 # Curated partisan framing and loaded-language lexicon
 LOADED_WORDS = {
@@ -216,7 +221,8 @@ def classify_text_stance(text: str) -> Dict[str, Any]:
     Evaluates political stance across sentences/paragraphs using fine-tuned BERT.
     Returns probability distribution over left, center, right and continuous score.
     """
-    if not bias_classifier:
+    clf = get_bias_classifier()
+    if not clf:
         return {
             "probabilities": {"left": 0.33, "center": 0.34, "right": 0.33},
             "stance_score": 0.0,
@@ -238,7 +244,7 @@ def classify_text_stance(text: str) -> Dict[str, Any]:
         if not chunk.strip():
             continue
         try:
-            raw_res = bias_classifier(chunk)
+            raw_res = clf(chunk)
             items = raw_res[0] if isinstance(raw_res[0], list) else raw_res
             probs = {item["label"].lower(): item["score"] for item in items}
             

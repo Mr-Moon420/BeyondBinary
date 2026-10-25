@@ -14,16 +14,33 @@ logger = logging.getLogger("BeyondBinary.ClaimExtractor")
 if not logger.handlers:
     logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(name)s: %(message)s")
 
-# Load spaCy pipeline once at module import
-logger.info("Loading spaCy sentence segmenter (en_core_web_sm)...")
-nlp = spacy.load("en_core_web_sm")
+# Lazy loaded models
+_nlp = None
+_classifier = None
 
-# Load ClaimBuster classifier once at module import
-logger.info("Loading ClaimBuster-DeBERTaV2 classifier...")
-classifier = pipeline(
-    "text-classification",
-    model="whispAI/ClaimBuster-DeBERTaV2"
-)
+def get_nlp():
+    global _nlp
+    if _nlp is None:
+        logger.info("Loading spaCy sentence segmenter (en_core_web_sm)...")
+        _nlp = spacy.load("en_core_web_sm")
+    return _nlp
+
+def get_classifier():
+    global _classifier
+    if _classifier is None:
+        logger.info("Loading ClaimBuster-DeBERTaV2 classifier...")
+        try:
+            _classifier = pipeline(
+                "text-classification",
+                model="whispAI/ClaimBuster-DeBERTaV2",
+                low_cpu_mem_usage=True
+            )
+        except Exception:
+            _classifier = pipeline(
+                "text-classification",
+                model="whispAI/ClaimBuster-DeBERTaV2"
+            )
+    return _classifier
 
 
 def extract_claims(text: str, max_claims: int = 5) -> List[str]:
@@ -35,12 +52,12 @@ def extract_claims(text: str, max_claims: int = 5) -> List[str]:
     if not text or not text.strip():
         return []
 
-    doc = nlp(text)
+    doc = get_nlp()(text)
     sentences = [s.text.strip() for s in doc.sents if len(s.text.strip()) > 10]
     if not sentences:
         return []
 
-    scored = classifier(sentences, truncation=True, max_length=512)
+    scored = get_classifier()(sentences, truncation=True, max_length=512)
 
     logger.debug("Evaluated %d sentences for check-worthiness.", len(sentences))
     for sent, result in zip(sentences, scored):

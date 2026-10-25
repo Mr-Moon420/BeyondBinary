@@ -1,8 +1,8 @@
 # verifier.py
 """
 Verifier module for BeyondBinary.
-Performs semantic retrieval against local FAISS index, real-time web evidence
-retrieval via Brave Search API, and NLI inference with RoBERTa-large-MNLI.
+Performs semantic retrieval against local FAISS index, multi-tier real-time web/wiki
+evidence retrieval via search_provider, and NLI inference with RoBERTa-large-MNLI.
 """
 
 import os
@@ -22,12 +22,26 @@ logger = logging.getLogger("BeyondBinary.Verifier")
 if not logger.handlers:
     logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(name)s: %(message)s")
 
-# Load embedding and NLI models
-logger.info("Initializing SentenceTransformer and RoBERTa NLI pipeline...")
-embedder = SentenceTransformer("all-MiniLM-L6-v2")
-nli = pipeline("text-classification", model="roberta-large-mnli")
+# Lazy loading for embedding and NLI models
+_embedder = None
+_nli = None
 
-# Robust relative path loading for FAISS index and passages
+def get_embedder():
+    global _embedder
+    if _embedder is None:
+        logger.info("Initializing SentenceTransformer (all-MiniLM-L6-v2)...")
+        _embedder = SentenceTransformer("all-MiniLM-L6-v2")
+    return _embedder
+
+def get_nli():
+    global _nli
+    if _nli is None:
+        logger.info("Initializing RoBERTa NLI pipeline (roberta-large-mnli)...")
+        # Standard loading without low_cpu_mem_usage to prevent Windows OS paging file errors
+        _nli = pipeline("text-classification", model="roberta-large-mnli")
+    return _nli
+
+# Relative path loading for FAISS index and passages
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 index_path = os.path.join(BASE_DIR, "data", "fever_index.faiss")
 passages_path = os.path.join(BASE_DIR, "data", "passages.pkl")
@@ -46,43 +60,61 @@ LABEL_MAP = {
 def verify_claim(claim: str) -> Dict[str, Any]:
     """
     Verifies a factual claim using semantic retrieval and web search:
-    1. Checks local FAISS index for high-confidence local passage matches.
-    2. If distance > 0.8 (insufficient local match) or if Brave Search is configured,
-       retrieves authoritative real-time web search evidence via Brave Search API.
-    3. Runs premise/hypothesis NLI classification with RoBERTa-large-MNLI.
-    4. Computes majority verdict and calibrated confidence score.
+    1. Checks local FAISS index for high-confidence local passage matches (distance <= 0.70).
+    2. If distance > 0.70, queries multi-tier real-time web & Wikipedia evidence provider.
+    3. If neither web evidence nor high-confidence local passage exists (dist > 0.85),
+       gracefully tags as 'Not Enough Info' rather than hallucinating refutation.
+    4. Runs premise/hypothesis NLI classification with RoBERTa-large-MNLI.
+    5. Computes calibrated verdict and confidence score.
     """
-    embedding = embedder.encode([claim]).astype("float32")
+    embedding = get_embedder().encode([claim]).astype("float32")
     distances, indices = index.search(embedding, k=2)
 
     dist_val = float(distances[0][0])
-    logger.info("Verifying claim: '%s' (FAISS nearest distance: %.3f)", claim[:60], dist_val)
+    logger.info("Verifying claim: '%s' (FAISS distance: %.3f)", claim[:60], dist_val)
 
     retrieval_source = "Local FAISS Index"
     sources: List[Dict[str, Any]] = []
     evidence: List[str] = []
 
-    # If local evidence is not closely matched (distance > 0.8), query Brave Search
-    search_provider = get_search_provider()
-    if dist_val > 0.8:
-        if search_provider.is_configured:
-            web_evidence, web_sources = fetch_web_evidence(claim, max_results=3)
-            if web_evidence:
-                evidence = web_evidence
-                sources = web_sources
-                retrieval_source = "Brave Web Search"
-                logger.info("Using Brave Web Search evidence (%d snippets)", len(evidence))
-        else:
-            logger.info("Brave API key not configured; falling back to local FAISS passages.")
+    # If local evidence is not closely matched (distance > 0.70), query live multi-tier search
+    if dist_val > 0.70:
+        web_evidence, web_sources = fetch_web_evidence(claim, max_results=3)
+        if web_evidence:
+            evidence = web_evidence
+            sources = web_sources
+            primary_src = web_sources[0].get("source_type", "Live Web Search") if web_sources else "Live Web Search"
+            retrieval_source = f"{primary_src} (Live Corroboration)"
+            logger.info("Using web evidence (%d snippets, primary: %s)", len(evidence), primary_src)
 
-    # Fallback to local FAISS passages if no web evidence was retrieved
+    # If no web evidence found, use local FAISS only if distance is reasonably bounded (<= 0.85)
     if not evidence:
-        evidence = [passages[i] for i in indices[0] if i < len(passages)]
-        sources = [
-            {"title": f"Local Wiki Corpus #{i}", "url": "", "snippet": passages[i]}
-            for i in indices[0] if i < len(passages)
-        ]
-        retrieval_source = "Local FAISS Index"
+        if dist_val <= 0.85:
+            evidence = [passages[i] for i in indices[0] if i < len(passages)]
+            sources = [
+                {"title": f"Local Wiki Corpus #{i}", "url": "", "snippet": passages[i], "source_type": "Local FAISS Index"}
+                for i in indices[0] if i < len(passages)
+            ]
+            retrieval_source = "Local FAISS Index"
+        else:
+            # Distance is too high (> 0.85) and no web evidence could be retrieved.
+            # Avoid feeding an irrelevant passage to RoBERTa to prevent false contradictions.
+            logger.info("Claim has no corroborating local or web evidence (FAISS dist %.3f > 0.85)", dist_val)
+            return {
+                "claim": claim,
+                "verdict": "Not Enough Info",
+                "confidence": 0.50,
+                "evidence": [],
+                "sources": [],
+                "retrieval_source": "Unverified (Insufficient Corroboration)",
+                "framing_analysis": {
+                    "is_misleading": False,
+                    "framing_type": None,
+                    "detected_markers": [],
+                    "density_pct": 0.0,
+                    "explanation": "No authoritative corroborating evidence was found in the local archive or live web."
+                }
+            }
 
     # Evaluate evidence against claim using RoBERTa NLI (Premise: evidence, Hypothesis: claim)
     verdicts = []
@@ -94,8 +126,7 @@ def verify_claim(claim: str) -> Dict[str, Any]:
         if not clean_ev:
             continue
         try:
-            # Pair input: text = premise (evidence), text_pair = hypothesis (claim)
-            res = nli({"text": clean_ev, "text_pair": claim}, truncation=True, max_length=512)
+            res = get_nli()({"text": clean_ev, "text_pair": claim}, truncation=True, max_length=512)
             if isinstance(res, list):
                 res = res[0]
             label = res["label"]
@@ -111,7 +142,7 @@ def verify_claim(claim: str) -> Dict[str, Any]:
         return {
             "claim": claim,
             "verdict": "Not Enough Info",
-            "confidence": 0.5,
+            "confidence": 0.50,
             "evidence": evidence,
             "sources": sources,
             "retrieval_source": retrieval_source,
@@ -120,27 +151,33 @@ def verify_claim(claim: str) -> Dict[str, Any]:
                 "framing_type": None,
                 "detected_markers": [],
                 "density_pct": 0.0,
-                "explanation": "No evidence retrieved to evaluate framing."
+                "explanation": "NLI evaluation could not score the retrieved snippets."
             }
         }
 
     # Evaluate claim framing (loaded rhetoric, evidence divergence, sensationalism)
     framing_info = evaluate_claim_framing(claim, verdicts, evidence)
 
-    # Compute raw NLI majority vote
-    final_label = max(set(verdicts), key=verdicts.count)
-    contradiction_ratio = verdicts.count("CONTRADICTION") / len(verdicts)
+    # Compute raw NLI vote counts
+    entailment_count = verdicts.count("ENTAILMENT")
+    contradiction_count = verdicts.count("CONTRADICTION")
+    neutral_count = verdicts.count("NEUTRAL")
 
     # Decision logic for final verdict:
-    # 1. Clear factual contradiction takes precedence -> Refuted
-    # 2. If claim uses loaded language / exhibits framing conflict -> Misleading-Framing
-    # 3. Else standard NLI mapping (Supported / Not Enough Info)
-    if final_label == "CONTRADICTION" and contradiction_ratio >= 0.5:
-        mapped_verdict = "Refuted"
-    elif framing_info["is_misleading"]:
-        mapped_verdict = "Misleading-Framing"
-    elif final_label == "ENTAILMENT":
+    # 1. If at least one authoritative passage corroborates and entails the claim -> Supported
+    if entailment_count > 0 and entailment_count >= contradiction_count:
         mapped_verdict = "Supported"
+        # Prioritize the corroborating evidence passage for display
+        for idx_ev, v in enumerate(verdicts):
+            if v == "ENTAILMENT":
+                evidence = [evidence[idx_ev]] + [e for j, e in enumerate(evidence) if j != idx_ev]
+                if sources and idx_ev < len(sources):
+                    sources = [sources[idx_ev]] + [s for j, s in enumerate(sources) if j != idx_ev]
+                break
+    elif contradiction_count > 0 and contradiction_count > entailment_count:
+        mapped_verdict = "Refuted"
+    elif framing_info.get("is_misleading"):
+        mapped_verdict = "Misleading-Framing"
     else:
         mapped_verdict = "Not Enough Info"
 
@@ -149,8 +186,10 @@ def verify_claim(claim: str) -> Dict[str, Any]:
         base_conf = max(confidences) if confidences else 0.8
         avg_confidence = round(min(0.98, max(0.75, base_conf)), 3)
     else:
-        winning_scores = verdict_scores.get(final_label, confidences)
-        avg_confidence = round(sum(winning_scores) / len(winning_scores), 3)
+        # Match winning label
+        target_label = "ENTAILMENT" if mapped_verdict == "Supported" else ("CONTRADICTION" if mapped_verdict == "Refuted" else "NEUTRAL")
+        winning_scores = verdict_scores.get(target_label, confidences)
+        avg_confidence = round(sum(winning_scores) / len(winning_scores), 3) if winning_scores else 0.70
 
     return {
         "claim": claim,

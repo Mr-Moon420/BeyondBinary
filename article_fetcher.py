@@ -15,25 +15,26 @@ import requests
 from feedParsing import fetch_content_from_rss
 from news_provider import get_news_provider
 from playwright_fetcher import sync_fetch_with_playwright
-from gnews.utils.utils import resolve_url
 from googlenewsdecoder import gnewsdecoder
 
 def resolve_google_news_url(url: str) -> str:
     """Resolve a Google News article wrapper to its publisher URL."""
-    if "news.google.com/rss/articles/" not in url:
+    if "news.google.com" not in url:
         return url
 
     try:
-        resolved_url = gnewsdecoder(url)
+        res = gnewsdecoder(url)
+        decoded_url = ""
+        if isinstance(res, dict):
+            if res.get("success") and res.get("decoded_url"):
+                decoded_url = res["decoded_url"]
+        elif isinstance(res, str):
+            decoded_url = res
 
-        if (
-            resolved_url
-            and "news.google.com" not in urlparse(resolved_url).netloc
-        ):
-            return resolved_url
+        if decoded_url and "news.google.com" not in urlparse(decoded_url).netloc:
+            return decoded_url
 
         logger.warning("Google News URL could not be resolved: %s", url)
-
     except Exception as e:
         logger.warning("Google News URL resolution failed: %s", e)
 
@@ -120,14 +121,15 @@ def _parse_html_content(html_content: str, url: str, domain: str) -> Dict[str, A
                 elem.drop_tree()
 
         # 3. Extract text paragraphs
-        article_nodes = doc.xpath('//article')
-        search_root = article_nodes[0] if article_nodes else doc
+        # Search for article tags that actually contain paragraph content
+        article_candidates = doc.xpath('//article[.//p] | //div[contains(@class, "article") or contains(@class, "story") or contains(@class, "body")][.//p]')
+        search_root = article_candidates[0] if article_candidates else doc
 
         paragraphs = []
         for p in search_root.xpath('.//p'):
             p_text = p.text_content().strip()
             p_text = re.sub(r"\s+", " ", p_text)
-            if len(p_text) < 35:
+            if len(p_text) < 25:
                 continue
             if any(p_text.lower().startswith(b) for b in [
                 "subscribe", "sign up", "follow us", "cookie policy",
@@ -135,6 +137,17 @@ def _parse_html_content(html_content: str, url: str, domain: str) -> Dict[str, A
             ]):
                 continue
             paragraphs.append(p_text)
+
+        # Fallback to searching all paragraphs across doc if candidate was sparse
+        if len(paragraphs) < 2:
+            for p in doc.xpath('//p'):
+                p_text = re.sub(r"\s+", " ", p.text_content().strip())
+                if len(p_text) >= 25 and not any(p_text.lower().startswith(b) for b in [
+                    "subscribe", "sign up", "follow us", "cookie policy",
+                    "advertisement", "all rights reserved", "terms of service"
+                ]):
+                    if p_text not in paragraphs:
+                        paragraphs.append(p_text)
 
         full_text = "\n\n".join(paragraphs)
         word_count = len(full_text.split())

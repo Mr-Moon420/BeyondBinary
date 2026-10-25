@@ -8,7 +8,7 @@ import logging
 import asyncio
 from typing import Dict, Any, Optional
 from playwright.async_api import async_playwright
-from playwright_stealth import stealth
+from playwright_stealth import Stealth
 
 logger = logging.getLogger("BeyondBinary.PlaywrightFetcher")
 if not logger.handlers:
@@ -35,13 +35,18 @@ async def fetch_with_playwright(url: str, timeout: float = 30.0) -> Dict[str, An
             page = await context.new_page()
 
             # Apply stealth plugin to bypass bot detection
-            await stealth(page)
+            await Stealth().apply_stealth_async(page)
 
             logger.info("Playwright fetching: %s", url)
 
             # Navigate to URL
-            # Use 'load' to ensure the initial page is fully there
-            response = await page.goto(url, timeout=timeout * 1000, wait_until="load")
+            # Use 'domcontentloaded' with settle pause to avoid timing out on heavy trackers/video
+            try:
+                response = await page.goto(url, timeout=timeout * 1000, wait_until="domcontentloaded")
+            except Exception as goto_err:
+                logger.warning("Playwright initial goto: %s. Continuing...", goto_err)
+            
+            await page.wait_for_timeout(2500)
 
             # --- AGGRESSIVE REDIRECT RESOLUTION ---
             # If we are still on a Google News URL, we need to wait for the JS/Meta redirect
@@ -71,8 +76,12 @@ async def fetch_with_playwright(url: str, timeout: float = 30.0) -> Dict[str, An
             if "news.google.com" in final_url:
                 logger.warning("Failed to escape Google News redirect wrapper for %s", url)
 
-            # Get the rendered HTML
-            content = await page.content()
+            # Get the rendered HTML safely
+            try:
+                content = await page.content()
+            except Exception:
+                await page.wait_for_timeout(1500)
+                content = await page.content()
             await browser.close()
 
             return {"success": True, "html": content, "url": final_url}

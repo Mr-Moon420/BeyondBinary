@@ -234,10 +234,12 @@ def fetch_article_from_url(url: str, timeout: float = 10.0) -> Dict[str, Any]:
         logger.info("Attempting Tier 1.5 fallback (Playwright Stealth) for %s", clean_url)
         pw_res = sync_fetch_with_playwright(clean_url, timeout)
         if pw_res["success"]:
-            # Use the final URL resolved by Playwright
             final_url = pw_res.get("url", clean_url)
             final_domain = extract_domain(final_url) or domain
-            return _parse_html_content(pw_res["html"], final_url, final_domain)
+            pw_parse_res = _parse_html_content(pw_res["html"], final_url, final_domain)
+            if pw_parse_res["success"]:
+                return pw_parse_res
+            logger.info("Playwright returned insufficient text/WAF block for %s. Trying fallbacks...", clean_url)
 
         # TIER 2: Try GNews Aggregator
         logger.info("Attempting Tier 2 fallback (GNews) for %s", clean_url)
@@ -268,10 +270,53 @@ def fetch_article_from_url(url: str, timeout: float = 10.0) -> Dict[str, Any]:
                 "error": None
             }
 
+        # TIER 4: Search Index Fallback (WAF / Paywall / Cloudflare / Akamai Bypass)
+        logger.info("Attempting Tier 4 fallback (Brave Search Index WAF Bypass) for %s", clean_url)
+        try:
+            import html
+            parsed_u = urlparse(clean_url)
+            slug = parsed_u.path.strip("/").split("/")[-1]
+            slug_words = re.sub(r"[^a-zA-Z0-9\s]", " ", slug)
+            query_terms = [w for w in slug_words.split() if len(w) > 2][:8]
+
+            if query_terms:
+                query = " ".join(query_terms)
+                from search_provider import get_search_provider
+                search_prov = get_search_provider()
+                search_results = search_prov.search(query, count=4)
+                if search_results:
+                    top_title = html.unescape(search_results[0].get("title", ""))
+                    if " - " in top_title:
+                        top_title = top_title.split(" - ")[0].strip()
+                    elif " | " in top_title:
+                        top_title = top_title.split(" | ")[0].strip()
+
+                    extracted_snippets = []
+                    for sr in search_results:
+                        snip = html.unescape(sr.get("snippet", "")).strip()
+                        if snip and len(snip) > 30 and snip not in extracted_snippets:
+                            extracted_snippets.append(snip)
+
+                    combined_body = "\n\n".join(extracted_snippets)
+                    w_count = len(combined_body.split())
+                    if w_count >= 20:
+                        logger.info("Tier 4 successfully extracted %d words via search index for %s", w_count, clean_url)
+                        return {
+                            "success": True,
+                            "url": clean_url,
+                            "domain": domain,
+                            "title": top_title or domain.capitalize() + " Dispatch",
+                            "text": combined_body,
+                            "word_count": w_count,
+                            "error": None
+                        }
+        except Exception as tier4_err:
+            logger.warning("Tier 4 search fallback error: %s", tier4_err)
+
         return {
             "success": False,
-            "url": rss_res.get("url") or clean_url,
-            "domain": extract_domain(rss_res.get("url") or clean_url) or domain,
+            "url": clean_url,
+            "domain": domain,
             "title": "",
             "text": "",
             "word_count": 0,

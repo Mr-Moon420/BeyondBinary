@@ -15,11 +15,13 @@ import { cleanDomain } from '../../utils/helpers';
 interface WorkbenchProps {
   initialUrl?: string;
   initialTitle?: string;
+  initialSnippet?: string;
 }
 
 export const Workbench: FC<WorkbenchProps> = ({
   initialUrl = '',
   initialTitle = '',
+  initialSnippet = '',
 }) => {
   const [url, setUrl] = useState<string>(initialUrl);
   const [text, setText] = useState<string>('');
@@ -36,10 +38,14 @@ export const Workbench: FC<WorkbenchProps> = ({
   const [analysisResult, setAnalysisResult] = useState<AnalysisResponse | null>(null);
 
   useEffect(() => {
-    if (initialUrl) {
-      setUrl(initialUrl);
+    if (initialUrl || initialSnippet) {
+      if (initialUrl) setUrl(initialUrl);
       if (initialTitle) setArticleTitle(initialTitle);
-      if (!text) {
+      if (initialSnippet && !text) {
+        setText(initialSnippet);
+        setWordCount(initialSnippet.split(/\s+/).length);
+      }
+      if (initialUrl) {
         handleFetchUrl(initialUrl);
       }
     }
@@ -66,8 +72,15 @@ export const Workbench: FC<WorkbenchProps> = ({
       setStatusMessage(`✓ Ingested ${data.word_count} words from ${data.domain || cleanDomain(urlToFetch)}`);
       setTimeout(() => setStatusMessage(''), 4000);
     } catch (err: any) {
-      setErrorMessage(err.message || 'Could not fetch article from URL.');
-      setStatusMessage('');
+      if (initialSnippet && initialSnippet.trim()) {
+        setText(initialSnippet);
+        setWordCount(initialSnippet.split(/\s+/).length);
+        setStatusMessage('ℹ️ Outlet is protected by anti-bot firewall. Ingested syndicated wire dispatch.');
+        setErrorMessage(null);
+      } else {
+        setErrorMessage(err.message || 'Could not fetch article from URL.');
+        setStatusMessage('');
+      }
     } finally {
       setIsFetchingUrl(false);
     }

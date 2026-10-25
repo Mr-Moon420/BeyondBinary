@@ -12,6 +12,7 @@ export function App() {
   const [selectedArticle, setSelectedArticle] = useState<{
     url: string;
     title: string;
+    snippet?: string;
   } | null>(null);
 
   const [compareData, setCompareData] = useState<{
@@ -33,6 +34,7 @@ export function App() {
     setSelectedArticle({
       url: article.url,
       title: article.title,
+      snippet: article.snippet,
     });
     setActiveTab('analyzer');
     window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -71,6 +73,7 @@ export function App() {
           <Workbench
             initialUrl={selectedArticle?.url}
             initialTitle={selectedArticle?.title}
+            initialSnippet={selectedArticle?.snippet}
           />
         ) : (
           <EchoChamberArena

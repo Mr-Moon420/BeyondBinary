@@ -35,11 +35,12 @@ export const TrendingWire: FC<TrendingWireProps> = ({ onSelectArticle, onCompare
   const [biasFilter, setBiasFilter] = useState<string>('all');
   const [displayCount, setDisplayCount] = useState<number>(12);
 
-  const loadFeed = async (selectedTopic?: string) => {
+  const loadFeed = async (selectedTopic?: string, forceRefresh: boolean = false) => {
     setIsLoading(true);
     setError(null);
     try {
-      const data = await fetchTrendingFeed(selectedTopic || topic);
+      const activeTopic = selectedTopic || topic;
+      const data = await fetchTrendingFeed(activeTopic, forceRefresh);
       setArticles((prev) => ({
         ...prev,
         ...data.topics,
@@ -94,7 +95,7 @@ export const TrendingWire: FC<TrendingWireProps> = ({ onSelectArticle, onCompare
         </div>
 
         <button
-          onClick={() => loadFeed()}
+          onClick={() => loadFeed(topic, true)}
           disabled={isLoading}
           className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded border border-stone-300 bg-white hover:bg-stone-50 text-xs font-semibold text-stone-700 transition-colors self-start sm:self-auto disabled:opacity-50"
         >
@@ -163,7 +164,7 @@ export const TrendingWire: FC<TrendingWireProps> = ({ onSelectArticle, onCompare
             <span>Feed could not be retrieved: {error}</span>
           </div>
           <button
-            onClick={() => loadFeed(topic)}
+            onClick={() => loadFeed(topic, true)}
             className="px-2.5 py-1 bg-rose-100 hover:bg-rose-200 text-rose-950 font-semibold rounded font-mono-data text-[11px]"
           >
             Retry

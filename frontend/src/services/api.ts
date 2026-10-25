@@ -20,8 +20,11 @@ export async function checkBackendHealth(): Promise<boolean> {
   }
 }
 
-export async function fetchTrendingFeed(topic?: string): Promise<TrendingResponse> {
-  const query = topic ? `?topic=${encodeURIComponent(topic)}` : '';
+export async function fetchTrendingFeed(topic?: string, refresh?: boolean): Promise<TrendingResponse> {
+  const params = new URLSearchParams();
+  if (topic) params.append('topic', topic);
+  if (refresh) params.append('refresh', 'true');
+  const query = params.toString() ? `?${params.toString()}` : '';
   const res = await fetch(`${API_BASE_URL}/trending${query}`, {
     method: 'GET',
     headers: { Accept: 'application/json' },

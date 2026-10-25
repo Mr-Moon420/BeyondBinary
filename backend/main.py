@@ -482,8 +482,16 @@ async def compare_perspectives(request: CompareRequest):
 
 # ── Trending News Feed ──────────────────────────────────────────────
 
-# Official Google News topic section RSS feeds (returns live breaking stories, not search relevance)
+# Real-time Google News feeds (24h search feeds ensure constantly updated live breaking stories)
 TOPIC_FEEDS = {
+    "politics": "https://news.google.com/rss/search?q=politics+when:24h&hl=en-US&gl=US&ceid=US:en",
+    "tech": "https://news.google.com/rss/search?q=technology+OR+AI+when:24h&hl=en-US&gl=US&ceid=US:en",
+    "business": "https://news.google.com/rss/search?q=business+OR+economy+OR+markets+when:24h&hl=en-US&gl=US&ceid=US:en",
+    "world": "https://news.google.com/rss/search?q=world+news+when:24h&hl=en-US&gl=US&ceid=US:en",
+    "sports": "https://news.google.com/rss/search?q=sports+when:24h&hl=en-US&gl=US&ceid=US:en",
+}
+
+TOPIC_FALLBACK_FEEDS = {
     "politics": "https://news.google.com/rss/headlines/section/topic/POLITICS?hl=en-US&gl=US&ceid=US:en",
     "tech": "https://news.google.com/rss/headlines/section/topic/TECHNOLOGY?hl=en-US&gl=US&ceid=US:en",
     "business": "https://news.google.com/rss/headlines/section/topic/BUSINESS?hl=en-US&gl=US&ceid=US:en",
@@ -494,17 +502,20 @@ TOPIC_FEEDS = {
 # In-memory cache for fast responsive delivery
 _DECODED_URL_CACHE: Dict[str, str] = {}
 _TRENDING_FEED_CACHE: Dict[str, Tuple[float, List[Dict[str, Any]]]] = {}
-_FEED_CACHE_TTL_SECONDS = 300  # 5 minutes cache TTL
+_FEED_CACHE_TTL_SECONDS = 180  # 3 minutes cache TTL for high freshness
 
 
 @app.get("/trending")
-def trending(topic: Optional[str] = None):
+def trending(topic: Optional[str] = None, refresh: bool = False):
     """
     Fetches real-time trending news headlines via direct Google News topic feeds,
     parses cross-source reporting coverage, and resolves original publisher URLs.
-    Optional query param: ?topic=politics|tech|business|world|sports
+    Supports query params:
+      - ?topic=politics|tech|business|world|sports
+      - ?refresh=true (forces cache invalidation and immediate live pull)
     """
     import requests as req
+    import email.utils
 
     requested_topic = (topic or "politics").lower().strip()
     if requested_topic in TOPIC_FEEDS:
@@ -516,8 +527,8 @@ def trending(topic: Optional[str] = None):
     results: Dict[str, List[Dict[str, Any]]] = {}
 
     for cat in topics_to_fetch:
-        # 1. Check in-memory cache
-        if cat in _TRENDING_FEED_CACHE:
+        # 1. Check in-memory cache if not explicitly refreshing
+        if not refresh and cat in _TRENDING_FEED_CACHE:
             cached_time, cached_articles = _TRENDING_FEED_CACHE[cat]
             if now - cached_time < _FEED_CACHE_TTL_SECONDS:
                 results[cat] = cached_articles
@@ -525,6 +536,7 @@ def trending(topic: Optional[str] = None):
                 continue
 
         feed_url = TOPIC_FEEDS.get(cat)
+        fallback_url = TOPIC_FALLBACK_FEEDS.get(cat)
         if not feed_url:
             results[cat] = []
             continue
@@ -534,6 +546,10 @@ def trending(topic: Optional[str] = None):
                 "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36 BeyondBinary/1.2"
             }
             resp = req.get(feed_url, headers=headers, timeout=8.0)
+            if resp.status_code != 200 and fallback_url:
+                logger.warning("Primary feed failed for '%s' (HTTP %d), trying fallback...", cat, resp.status_code)
+                resp = req.get(fallback_url, headers=headers, timeout=8.0)
+
             if resp.status_code != 200:
                 logger.warning("Google News feed fetch failed for '%s': HTTP %d", cat, resp.status_code)
                 results[cat] = []
@@ -635,8 +651,18 @@ def trending(topic: Optional[str] = None):
                     "perspectives": perspectives[1:4]
                 })
 
-                if len(raw_articles) >= 16:
+                if len(raw_articles) >= 50:
                     break
+
+            # Sort articles chronologically descending so newest breaking stories are first
+            def _parse_timestamp(d_str: str) -> float:
+                try:
+                    return email.utils.parsedate_to_datetime(d_str).timestamp()
+                except Exception:
+                    return 0.0
+
+            raw_articles.sort(key=lambda a: _parse_timestamp(a["pub_date"]), reverse=True)
+            raw_articles = raw_articles[:25]
 
             # Batch decode uncached URLs
             uncached_links = [
@@ -660,7 +686,7 @@ def trending(topic: Optional[str] = None):
                     logger.warning("Batch Google News decoding failed: %s", dec_err)
 
             final_articles: List[Dict[str, Any]] = []
-            for art in raw_articles[:15]:
+            for art in raw_articles:
                 resolved_url = _DECODED_URL_CACHE.get(art["link"], art["link"])
                 pub_info = _lookup_publisher(resolved_url, art["source_url"], art["source_name"])
                 final_articles.append({

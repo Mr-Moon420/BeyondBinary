@@ -78,34 +78,6 @@ export const EchoChamberArena: FC<EchoChamberArenaProps> = ({
     }
   };
 
-  const loadPreset = (
-    _presetTitle: string,
-    sA: { source: string; title: string; text?: string },
-    sB: { source: string; title: string; text?: string }
-  ) => {
-    setUrlA('');
-    setUrlB('');
-    setSourceA(sA.source);
-    setTitleA(sA.title);
-    setSourceB(sB.source);
-    setTitleB(sB.title);
-
-    setIsLoading(true);
-    setError(null);
-
-    comparePerspectives({
-      source_a: sA.source,
-      title_a: sA.title,
-      text_a: sA.text,
-      source_b: sB.source,
-      title_b: sB.title,
-      text_b: sB.text,
-    })
-      .then((res) => setComparisonResult(res))
-      .catch((err) => setError(err?.message || 'Preset comparison failed'))
-      .finally(() => setIsLoading(false));
-  };
-
   const getVerdictBadge = (verdict: VerifiedClaim['verdict']) => {
     switch (verdict) {
       case 'Supported':
@@ -177,56 +149,11 @@ export const EchoChamberArena: FC<EchoChamberArenaProps> = ({
         )}
       </div>
 
-      {/* Input Configuration & Quick Presets Deck */}
+      {/* Input Configuration Deck */}
       <div className="my-6 p-5 bg-white border border-stone-200 rounded-lg shadow-sm">
-        <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4 mb-4 pb-3 border-b border-stone-100">
+        <div className="flex items-center justify-between mb-4 pb-3 border-b border-stone-100">
           <div className="text-xs font-mono-data font-semibold uppercase tracking-wider text-stone-700">
             Source Configuration
-          </div>
-
-          {/* College Demo Presets */}
-          <div className="flex flex-wrap items-center gap-2 text-xs font-mono-data">
-            <span className="text-stone-400 text-[11px]">Evaluator Demo Presets:</span>
-            <button
-              onClick={() =>
-                loadPreset(
-                  'Energy Policy Standoff',
-                  {
-                    source: 'MSNBC',
-                    title: 'Senate Advances Historic Clean Energy Transition Package',
-                    text: 'The Senate moved forward today on a landmark green energy bill that will fund solar and wind infrastructure. Environmental advocates hailed the legislation as a vital breakthrough for reducing emissions and creating tens of thousands of sustainable jobs across the country.',
-                  },
-                  {
-                    source: 'Fox News',
-                    title: 'Conservative Watchdogs Slam Radical Trillion-Dollar Green Spending Package',
-                    text: 'Fiscal watchdogs warned today of a catastrophic spike in national debt following the introduction of a radical green boondoggle spending bill in the Senate. Critics slammed the outrageous government overreach and dangerous threat to reliable energy grids.',
-                  }
-                )
-              }
-              className="px-2.5 py-1 rounded bg-stone-100 hover:bg-stone-200 border border-stone-200 text-stone-800 transition-colors cursor-pointer text-[11px]"
-            >
-              Demo 1: Clean Energy (MSNBC vs Fox News)
-            </button>
-            <button
-              onClick={() =>
-                loadPreset(
-                  'Economic Outlook',
-                  {
-                    source: 'The Guardian',
-                    title: 'Central Banks Face Urgent Pressure as Inflation Squeezes Working Class',
-                    text: 'Working-class families face persistent hardship as elevated interest rates and corporate price-gouging maintain pressure on household budgets. Progressive economists urged policymakers to protect employment over aggressive monetary tightening.',
-                  },
-                  {
-                    source: 'Wall Street Journal',
-                    title: 'Resilient Labor Market Sustains Robust Corporate Growth and Market Confidence',
-                    text: 'Robust employment figures and sustained consumer spending have reinforced confidence across equity markets. Business leaders signaled confidence that monetary stability will bolster private sector capital deployment.',
-                  }
-                )
-              }
-              className="px-2.5 py-1 rounded bg-stone-100 hover:bg-stone-200 border border-stone-200 text-stone-800 transition-colors cursor-pointer text-[11px]"
-            >
-              Demo 2: Economy (Guardian vs WSJ)
-            </button>
           </div>
         </div>
 

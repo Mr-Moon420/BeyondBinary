@@ -43,7 +43,7 @@ def get_nli():
     return _nli
 
 # Relative path loading for FAISS index and passages
-BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 index_path = os.path.join(BASE_DIR, "data", "fever_index.faiss")
 passages_path = os.path.join(BASE_DIR, "data", "passages.pkl")
 

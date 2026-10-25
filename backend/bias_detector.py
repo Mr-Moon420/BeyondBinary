@@ -24,7 +24,7 @@ if not logger.handlers:
     logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(name)s: %(message)s")
 
 # Load AllSides Media Bias Database
-BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 ALLSIDES_FILE = os.path.join(BASE_DIR, "data", "allsides_ratings.json")
 
 ALLSIDES_RATINGS: Dict[str, Dict[str, Any]] = {}

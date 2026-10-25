@@ -12,7 +12,7 @@ from urllib.parse import urlparse
 
 import lxml.html
 import requests
-from feedParsing import fetch_content_from_rss
+from feed_parser import fetch_content_from_rss
 from news_provider import get_news_provider
 from playwright_fetcher import sync_fetch_with_playwright
 from googlenewsdecoder import gnewsdecoder

@@ -1,3 +1,13 @@
+---
+title: BeyondBinary - Media Credibility & Bias Analysis
+emoji: ⚖️
+colorFrom: gray
+colorTo: indigo
+sdk: docker
+app_port: 7860
+pinned: false
+---
+
 # BeyondBinary
 
 **BeyondBinary** is a multi-dimensional media credibility and ideological bias analysis system. It combines Natural Language Inference (NLI), semantic vector retrieval, Explainable AI (XAI) diagnostics, and domain-level media intelligence to evaluate the factual accuracy, rhetorical framing, and polarization of news reporting.

@@ -22,7 +22,13 @@ def get_nlp():
     global _nlp
     if _nlp is None:
         logger.info("Loading spaCy sentence segmenter (en_core_web_sm)...")
-        _nlp = spacy.load("en_core_web_sm")
+        try:
+            _nlp = spacy.load("en_core_web_sm")
+        except Exception:
+            import spacy.cli
+            logger.info("Downloading spaCy model 'en_core_web_sm'...")
+            spacy.cli.download("en_core_web_sm")
+            _nlp = spacy.load("en_core_web_sm")
     return _nlp
 
 def get_classifier():

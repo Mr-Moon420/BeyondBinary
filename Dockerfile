@@ -5,16 +5,16 @@ FROM python:3.11-slim
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
     PORT=10000 \
+    RENDER=true \
     HOME=/home/user
 
-# Install system dependencies (build-essential, git, curl)
+# Install system dependencies (build-essential, curl)
 RUN apt-get update && apt-get install -y --no-install-recommends \
     build-essential \
     curl \
-    git \
     && rm -rf /var/lib/apt/lists/*
 
-# Create non-root user (Hugging Face Spaces requirement UID 1000)
+# Create non-root user
 RUN useradd -m -u 1000 user
 WORKDIR $HOME/app
 
@@ -22,14 +22,10 @@ WORKDIR $HOME/app
 RUN pip install --no-cache-dir --upgrade pip && \
     pip install --no-cache-dir torch --index-url https://download.pytorch.org/whl/cpu
 
-# Copy requirements and install (filtering torch to retain CPU wheel)
+# Copy requirements and install
 COPY --chown=user:user requirements.txt .
-RUN grep -v "^torch" requirements.txt > reqs_no_torch.txt && \
-    pip install --no-cache-dir -r reqs_no_torch.txt && \
+RUN pip install --no-cache-dir -r requirements.txt && \
     python -m spacy download en_core_web_sm
-
-# Install Playwright Chromium & OS browser dependencies for web scraping
-RUN playwright install --with-deps chromium || true
 
 # Copy full application code & static assets
 COPY --chown=user:user . .
@@ -38,7 +34,7 @@ COPY --chown=user:user . .
 RUN mkdir -p /home/user/.cache && chown -R user:user /home/user
 USER user
 
-# Warm-up pre-cache for lightweight neural models (reduces first-request cold start)
+# Warm-up pre-cache for lightweight neural models
 RUN python -c "from sentence_transformers import SentenceTransformer; SentenceTransformer('all-MiniLM-L6-v2')" || true
 
 EXPOSE 10000

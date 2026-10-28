@@ -48,7 +48,11 @@ class BraveSearchProvider:
     ENDPOINT = "https://api.search.brave.com/res/v1/web/search"
 
     def __init__(self, api_key: Optional[str] = None, timeout: float = 5.0):
-        self.api_key = api_key or os.getenv("BRAVE_API_KEY", "").strip()
+        self.api_key = (
+            api_key
+            or os.getenv("BRAVE_API_KEY", "").strip()
+            or os.getenv("BRAVE_SEARCH_API_KEY", "").strip()
+        )
         self.timeout = timeout
 
     @property

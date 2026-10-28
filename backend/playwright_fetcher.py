@@ -8,7 +8,11 @@ import logging
 import asyncio
 from typing import Dict, Any, Optional
 from playwright.async_api import async_playwright
-from playwright_stealth import Stealth
+try:
+    from playwright_stealth import Stealth
+    _HAS_STEALTH = True
+except Exception:
+    _HAS_STEALTH = False
 
 logger = logging.getLogger("BeyondBinary.PlaywrightFetcher")
 if not logger.handlers:
@@ -34,8 +38,9 @@ async def fetch_with_playwright(url: str, timeout: float = 30.0) -> Dict[str, An
 
             page = await context.new_page()
 
-            # Apply stealth plugin to bypass bot detection
-            await Stealth().apply_stealth_async(page)
+            # Apply stealth plugin if available to bypass bot detection
+            if _HAS_STEALTH:
+                await Stealth().apply_stealth_async(page)
 
             logger.info("Playwright fetching: %s", url)
 

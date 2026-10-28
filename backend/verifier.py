@@ -45,11 +45,19 @@ def get_nli():
 # Relative path loading for FAISS index and passages
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 index_path = os.path.join(BASE_DIR, "data", "fever_index.faiss")
-passages_path = os.path.join(BASE_DIR, "data", "passages.pkl")
+passages_json_path = os.path.join(BASE_DIR, "data", "passages.json")
+passages_pkl_path = os.path.join(BASE_DIR, "data", "passages.pkl")
 
 index = faiss.read_index(index_path)
-with open(passages_path, "rb") as f:
-    passages = pickle.load(f)
+if os.path.exists(passages_json_path):
+    import json
+    with open(passages_json_path, "r", encoding="utf-8") as f:
+        passages = json.load(f)
+elif os.path.exists(passages_pkl_path):
+    with open(passages_pkl_path, "rb") as f:
+        passages = pickle.load(f)
+else:
+    passages = []
 
 LABEL_MAP = {
     "ENTAILMENT": "Supported",

@@ -204,6 +204,11 @@ def _query_search_bypass(query: str, original_url: str, original_domain: str, or
             if sep in clean_q:
                 clean_q = clean_q.split(sep)[0].strip()
 
+        # Optimize search query to first 10-12 key words for fast indexing
+        words = clean_q.split()
+        if len(words) > 12:
+            clean_q = " ".join(words[:12])
+
         logger.info("Attempting Search Bypass for query: '%s'", clean_q)
         search_results = search_prov.search(clean_q, count=4)
         if not search_results:
@@ -305,6 +310,16 @@ def fetch_article_from_url(url: str, title: Optional[str] = None, timeout: float
                 bypass_res = _query_search_bypass(search_query, clean_url, domain, title)
                 if bypass_res and bypass_res.get("success"):
                     return bypass_res
+
+            return {
+                "success": False,
+                "url": clean_url,
+                "domain": domain,
+                "title": title or "",
+                "text": "",
+                "word_count": 0,
+                "error": "Could not resolve Google News wrapper via search bypass."
+            }
 
         # TIER 1: Direct Request (Skip if it's still a Google News wrapper)
         if not is_google_news:

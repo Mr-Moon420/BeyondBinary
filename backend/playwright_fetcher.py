@@ -4,6 +4,7 @@ Advanced article fetching using Playwright with stealth plugins.
 Bypasses bot detection by simulating a real browser environment.
 """
 
+import os
 import logging
 import asyncio
 from typing import Dict, Any, Optional
@@ -31,8 +32,8 @@ async def fetch_with_playwright(url: str, timeout: float = 30.0) -> Dict[str, An
     Fetches page content using a headless browser with stealth settings.
     Includes aggressive resolution for Google News redirects.
     """
-    if not _HAS_PLAYWRIGHT or async_playwright is None:
-        return {"success": False, "error": "Playwright is not installed in environment.", "html": ""}
+    if os.getenv("RENDER") or not _HAS_PLAYWRIGHT or async_playwright is None:
+        return {"success": False, "error": "Playwright disabled on cloud container.", "html": ""}
 
     try:
         async with async_playwright() as p:

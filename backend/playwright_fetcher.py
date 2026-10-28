@@ -7,7 +7,13 @@ Bypasses bot detection by simulating a real browser environment.
 import logging
 import asyncio
 from typing import Dict, Any, Optional
-from playwright.async_api import async_playwright
+try:
+    from playwright.async_api import async_playwright
+    _HAS_PLAYWRIGHT = True
+except (ImportError, ModuleNotFoundError):
+    _HAS_PLAYWRIGHT = False
+    async_playwright = None
+
 try:
     from playwright_stealth import Stealth
     _HAS_STEALTH = True
@@ -25,6 +31,9 @@ async def fetch_with_playwright(url: str, timeout: float = 30.0) -> Dict[str, An
     Fetches page content using a headless browser with stealth settings.
     Includes aggressive resolution for Google News redirects.
     """
+    if not _HAS_PLAYWRIGHT or async_playwright is None:
+        return {"success": False, "error": "Playwright is not installed in environment.", "html": ""}
+
     try:
         async with async_playwright() as p:
             # Launch browser

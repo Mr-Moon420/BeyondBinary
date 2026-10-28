@@ -24,7 +24,12 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
-from googlenewsdecoder import gnewsdecoder
+try:
+    from googlenewsdecoder import gnewsdecoder
+    _HAS_GNEWS_DECODER = True
+except (ImportError, ModuleNotFoundError):
+    _HAS_GNEWS_DECODER = False
+    gnewsdecoder = None
 from pydantic import BaseModel
 
 from claim_extractor import extract_claims
@@ -155,10 +160,12 @@ app.add_middleware(
 class ArticleInput(BaseModel):
     text: Optional[str] = ""
     url: Optional[str] = None
+    title: Optional[str] = None
 
 
 class UrlInput(BaseModel):
     url: str
+    title: Optional[str] = None
 
 
 _FRONTEND_DIST = os.path.join(_BASE_DIR, "frontend", "dist")
@@ -196,19 +203,19 @@ def health():
 @app.post("/fetch-url")
 def fetch_url(data: UrlInput):
     """Fetches clean text and metadata from a news article URL."""
-    return fetch_article_from_url(data.url)
+    return fetch_article_from_url(data.url, title=data.title)
 
 
 @app.post("/analyze")
 def analyze(article: ArticleInput):
     input_text = (article.text or "").strip()
     source_url = article.url
-    article_title = ""
+    article_title = article.title or ""
 
     # 1. Auto-detect if input is a URL or if text is omitted with a URL provided
     if is_valid_url(input_text):
         source_url = input_text
-        fetch_res = fetch_article_from_url(source_url)
+        fetch_res = fetch_article_from_url(source_url, title=article.title)
         if not fetch_res["success"]:
             return {
                 "error": fetch_res["error"],
@@ -219,7 +226,7 @@ def analyze(article: ArticleInput):
         input_text = fetch_res["text"]
         article_title = fetch_res["title"]
     elif source_url and not input_text:
-        fetch_res = fetch_article_from_url(source_url)
+        fetch_res = fetch_article_from_url(source_url, title=article.title)
         if not fetch_res["success"]:
             return {
                 "error": fetch_res["error"],
@@ -313,7 +320,7 @@ def _analyze_outlet_payload(
                 url = f"https://{dom}"
 
     if url and not input_text:
-        fetch_res = fetch_article_from_url(url)
+        fetch_res = fetch_article_from_url(url, title=fallback_title)
         if fetch_res.get("success"):
             input_text = fetch_res.get("text", "")
             if fetch_res.get("title"):
@@ -670,7 +677,7 @@ def trending(topic: Optional[str] = None, refresh: bool = False):
                 if a["link"] not in _DECODED_URL_CACHE
             ]
 
-            if uncached_links:
+            if uncached_links and _HAS_GNEWS_DECODER and gnewsdecoder:
                 try:
                     decoded_res = gnewsdecoder(uncached_links)
                     if isinstance(decoded_res, list) and len(decoded_res) == len(uncached_links):

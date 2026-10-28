@@ -46,12 +46,12 @@ export const Workbench: FC<WorkbenchProps> = ({
         setWordCount(initialSnippet.split(/\s+/).length);
       }
       if (initialUrl) {
-        handleFetchUrl(initialUrl);
+        handleFetchUrl(initialUrl, initialTitle);
       }
     }
   }, [initialUrl]);
 
-  const handleFetchUrl = async (targetUrl?: string) => {
+  const handleFetchUrl = async (targetUrl?: string, targetTitle?: string) => {
     const urlToFetch = (targetUrl || url).trim();
     if (!urlToFetch) return;
 
@@ -60,7 +60,8 @@ export const Workbench: FC<WorkbenchProps> = ({
     setStatusMessage('Extracting article content from outlet...');
 
     try {
-      const data = await fetchArticleByUrl(urlToFetch);
+      const titleToPass = targetTitle || initialTitle || articleTitle || undefined;
+      const data = await fetchArticleByUrl(urlToFetch, titleToPass);
       if (!data.success) {
         throw new Error(data.error || 'Failed to extract article content.');
       }
@@ -97,6 +98,7 @@ export const Workbench: FC<WorkbenchProps> = ({
       const result = await analyzeArticle({
         text: text.trim(),
         url: url.trim() || undefined,
+        title: articleTitle || initialTitle || undefined,
       });
 
       if (result.error) {

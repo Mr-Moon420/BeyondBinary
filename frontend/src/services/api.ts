@@ -37,14 +37,14 @@ export async function fetchTrendingFeed(topic?: string, refresh?: boolean): Prom
   return res.json();
 }
 
-export async function fetchArticleByUrl(url: string): Promise<FetchUrlResponse> {
+export async function fetchArticleByUrl(url: string, title?: string): Promise<FetchUrlResponse> {
   const res = await fetch(`${API_BASE_URL}/fetch-url`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
       Accept: 'application/json',
     },
-    body: JSON.stringify({ url }),
+    body: JSON.stringify({ url, title }),
   });
 
   if (!res.ok) {
@@ -57,6 +57,7 @@ export async function fetchArticleByUrl(url: string): Promise<FetchUrlResponse> 
 export async function analyzeArticle(payload: {
   text?: string;
   url?: string;
+  title?: string;
 }): Promise<AnalysisResponse> {
   const res = await fetch(`${API_BASE_URL}/analyze`, {
     method: 'POST',

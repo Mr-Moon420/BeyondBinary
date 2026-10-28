@@ -203,7 +203,19 @@ def health():
 @app.post("/fetch-url")
 def fetch_url(data: UrlInput):
     """Fetches clean text and metadata from a news article URL."""
-    return fetch_article_from_url(data.url, title=data.title)
+    try:
+        return fetch_article_from_url(data.url, title=data.title)
+    except Exception as e:
+        logger.exception("Exception in fetch_url for %s: %s", data.url, e)
+        return {
+            "success": False,
+            "url": data.url,
+            "domain": "",
+            "title": data.title or "",
+            "text": "",
+            "word_count": 0,
+            "error": str(e)
+        }
 
 
 @app.post("/analyze")

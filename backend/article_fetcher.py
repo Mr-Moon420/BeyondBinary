@@ -123,20 +123,15 @@ def _parse_html_content(html_content: str, url: str, domain: str) -> Dict[str, A
         elif " | " in title:
             title = title.split(" | ")[0].strip()
 
-        # 2. Remove noise elements
-        noise_tags = ["script", "style", "nav", "header", "footer", "aside", "form", "noscript", "iframe", "svg"]
-        for tag in noise_tags:
-            for elem in doc.xpath(f"//{tag}"):
-                elem.drop_tree()
-
-        # 3. Extract text paragraphs
+        # 2. Extract text paragraphs safely without mutating the C-level libxml2 tree
         article_candidates = doc.xpath('//article[.//p] | //div[contains(@class, "article") or contains(@class, "story") or contains(@class, "body")][.//p]')
         search_root = article_candidates[0] if article_candidates else doc
 
         paragraphs = []
         for p in search_root.xpath('.//p'):
-            p_text = p.text_content().strip()
-            p_text = re.sub(r"\s+", " ", p_text)
+            if p.xpath('ancestor::header | ancestor::footer | ancestor::nav | ancestor::aside | ancestor::form'):
+                continue
+            p_text = re.sub(r"\s+", " ", p.text_content().strip())
             if len(p_text) < 25:
                 continue
             if any(p_text.lower().startswith(b) for b in [
@@ -148,6 +143,8 @@ def _parse_html_content(html_content: str, url: str, domain: str) -> Dict[str, A
 
         if len(paragraphs) < 2:
             for p in doc.xpath('//p'):
+                if p.xpath('ancestor::header | ancestor::footer | ancestor::nav | ancestor::aside | ancestor::form'):
+                    continue
                 raw_p = re.sub(r"\s+", " ", p.text_content().strip())
                 if len(raw_p) >= 25 and not any(raw_p.lower().startswith(b) for b in [
                     "subscribe", "sign up", "follow us", "cookie policy",

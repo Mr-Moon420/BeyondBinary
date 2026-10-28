@@ -9,7 +9,8 @@ and transparent Explainable AI (XAI) rationale synthesis.
 import os
 import pickle
 import logging
-from typing import Dict, Any, List
+from typing import Dict, Any, List, Optional
+import requests
 
 import faiss
 import numpy as np
@@ -64,6 +65,34 @@ LABEL_MAP = {
     "CONTRADICTION": "Refuted",
     "NEUTRAL": "Not Enough Info"
 }
+
+
+def _query_hf_inference_nli(premise: str, hypothesis: str) -> Optional[Dict[str, Any]]:
+    """Query Hugging Face Serverless Inference API for RoBERTa-large-MNLI to save local RAM."""
+    token = os.getenv("HF_TOKEN") or os.getenv("HUGGINGFACEHUB_API_TOKEN")
+    if not token:
+        return None
+    try:
+        url = "https://router.huggingface.co/hf-inference/models/roberta-large-mnli"
+        headers = {
+            "Authorization": f"Bearer {token}",
+            "Content-Type": "application/json"
+        }
+        payload = {
+            "inputs": f"{premise}</s></s>{hypothesis}",
+            "options": {"wait_for_model": True}
+        }
+        resp = requests.post(url, headers=headers, json=payload, timeout=12.0)
+        if resp.status_code == 200:
+            data = resp.json()
+            if isinstance(data, list) and data:
+                items = data[0] if isinstance(data[0], list) else data
+                items = sorted(items, key=lambda x: x.get("score", 0), reverse=True)
+                top = items[0]
+                return {"label": top["label"], "score": float(top["score"])}
+    except Exception as e:
+        logger.warning("HF Serverless Inference API request failed: %s", e)
+    return None
 
 
 def verify_claim(claim: str) -> Dict[str, Any]:
@@ -143,11 +172,16 @@ def verify_claim(claim: str) -> Dict[str, Any]:
         if not clean_ev:
             continue
         try:
-            res = get_nli()({"text": clean_ev, "text_pair": claim}, truncation=True, max_length=512)
-            if isinstance(res, list):
-                res = res[0]
-            label = res["label"]
-            score = float(res["score"])
+            api_res = _query_hf_inference_nli(clean_ev, claim)
+            if api_res:
+                label = api_res["label"]
+                score = api_res["score"]
+            else:
+                res = get_nli()({"text": clean_ev, "text_pair": claim}, truncation=True, max_length=512)
+                if isinstance(res, list):
+                    res = res[0]
+                label = res["label"]
+                score = float(res["score"])
 
             verdicts.append(label)
             confidences.append(score)

@@ -14,6 +14,7 @@ import os
 import re
 from typing import Dict, Any, List, Optional
 from urllib.parse import urlparse
+import requests
 
 import torch
 import numpy as np
@@ -216,18 +217,40 @@ def score_to_category(score: float) -> str:
         return "Right"
 
 
+def _query_hf_inference_bias(text: str) -> Optional[List[Dict[str, Any]]]:
+    """Query Hugging Face Serverless Inference API for political bias BERT to save RAM."""
+    token = os.getenv("HF_TOKEN") or os.getenv("HUGGINGFACEHUB_API_TOKEN")
+    if not token:
+        return None
+    try:
+        url = "https://router.huggingface.co/hf-inference/models/theArif/mbzuai-political-bias-bert"
+        headers = {
+            "Authorization": f"Bearer {token}",
+            "Content-Type": "application/json"
+        }
+        payload = {
+            "inputs": text[:512],
+            "options": {"wait_for_model": True}
+        }
+        resp = requests.post(url, headers=headers, json=payload, timeout=12.0)
+        if resp.status_code == 200:
+            data = resp.json()
+            if isinstance(data, list) and data:
+                return data[0] if isinstance(data[0], list) else data
+    except Exception as e:
+        logger.warning("HF Serverless Bias API error: %s", e)
+    return None
+
+
 def classify_text_stance(text: str) -> Dict[str, Any]:
     """
     Evaluates political stance across sentences/paragraphs using fine-tuned BERT.
     Returns probability distribution over left, center, right and continuous score.
     """
-    clf = get_bias_classifier()
-    if not clf:
-        return {
-            "probabilities": {"left": 0.33, "center": 0.34, "right": 0.33},
-            "stance_score": 0.0,
-            "stance_label": "Center"
-        }
+    token = os.getenv("HF_TOKEN") or os.getenv("HUGGINGFACEHUB_API_TOKEN")
+    clf = None
+    if not token:
+        clf = get_bias_classifier()
 
     # Split text into chunks (~150 words each) for contextual inference
     words = text.split()
@@ -244,13 +267,19 @@ def classify_text_stance(text: str) -> Dict[str, Any]:
         if not chunk.strip():
             continue
         try:
-            raw_res = clf(chunk)
-            items = raw_res[0] if isinstance(raw_res[0], list) else raw_res
-            probs = {item["label"].lower(): item["score"] for item in items}
-            
-            left_scores.append(probs.get("left", 0.0))
-            center_scores.append(probs.get("center", 0.0))
-            right_scores.append(probs.get("right", 0.0))
+            items = _query_hf_inference_bias(chunk)
+            if not items:
+                if clf is None:
+                    clf = get_bias_classifier()
+                if clf:
+                    raw_res = clf(chunk)
+                    items = raw_res[0] if isinstance(raw_res[0], list) else raw_res
+
+            if items:
+                probs = {item["label"].lower(): item["score"] for item in items}
+                left_scores.append(probs.get("left", 0.0))
+                center_scores.append(probs.get("center", 0.0))
+                right_scores.append(probs.get("right", 0.0))
         except Exception as e:
             logger.warning("Stance classification chunk error: %s", e)
 

@@ -215,14 +215,14 @@ def _query_search_bypass(query: str, original_url: str, original_domain: str, or
         }
 
         # Step A: Try direct fetch on top publisher results (skipping google news links)
-        for cand in search_results[:3]:
+        for cand in search_results[:2]:
             cand_url = cand.get("url", "")
             cand_domain = extract_domain(cand_url) or ""
             if not cand_url or "google.com" in cand_domain:
                 continue
 
             try:
-                cand_resp = requests.get(cand_url, headers=headers, timeout=5.0, allow_redirects=True)
+                cand_resp = requests.get(cand_url, headers=headers, timeout=2.5, allow_redirects=True)
                 if cand_resp.status_code == 200:
                     cand_parse = _parse_html_content(cand_resp.text, cand_resp.url, extract_domain(cand_resp.url) or cand_domain)
                     if cand_parse.get("success") and cand_parse.get("word_count", 0) >= 45:
@@ -271,8 +271,8 @@ def fetch_article_from_url(url: str, title: Optional[str] = None, timeout: float
     if not clean_url.startswith(("http://", "https://")):
         clean_url = "https://" + clean_url
 
-    # Check if Google News wrapper
-    if "news.google.com" in clean_url:
+    # Check if Google News wrapper (skip slow gnewsdecoder if headline is provided for direct search bypass)
+    if "news.google.com" in clean_url and not title:
         clean_url = resolve_google_news_url(clean_url)
 
     domain = extract_domain(clean_url) or ""

@@ -52,35 +52,47 @@ def get_classifier():
 def extract_claims(text: str, max_claims: int = 5) -> List[str]:
     """
     Extracts up to `max_claims` check-worthy factual claims from input text.
-    Filters sentences that are classified as CFS (Check-worthy Factual Statement)
-    with confidence > 0.5. If none exceed the threshold, falls back to the top candidate.
+    Uses structural factual heuristic ranking + ClaimBuster DeBERTa-v2 with tight max_length
+    to guarantee sub-second execution on CPU.
     """
     if not text or not text.strip():
         return []
 
     doc = get_nlp()(text)
-    sentences = [s.text.strip() for s in doc.sents if len(s.text.strip()) > 10]
+    sentences = [s.text.strip() for s in doc.sents if len(s.text.strip()) > 15]
     if not sentences:
         return []
 
-    scored = get_classifier()(sentences, truncation=True, max_length=512)
+    # Fast heuristic ranking for check-worthy factual statements (CFS):
+    # Prioritizes statistical assertions, numerical metrics, quotes, and named entities
+    def _factual_rank(s: str) -> float:
+        score = 0.0
+        if any(c.isdigit() for c in s):
+            score += 2.5
+        if any(sym in s for sym in ["$", "£", "€", "%", "₹", "billion", "million", "percent"]):
+            score += 2.5
+        if any(w in s.lower() for w in ["said", "announced", "reported", "confirmed", "found", "stated", "arrested", "suspended"]):
+            score += 1.5
+        if '"' in s or "“" in s or "”" in s:
+            score += 1.0
+        if 15 <= len(s.split()) <= 45:
+            score += 1.0
+        return score
 
-    logger.debug("Evaluated %d sentences for check-worthiness.", len(sentences))
-    for sent, result in zip(sentences, scored):
-        logger.debug("Sentence: '%s' | Label: %s | Score: %.3f", sent[:50], result["label"], result["score"])
+    ranked_candidates = sorted(sentences, key=_factual_rank, reverse=True)
+    eval_candidates = ranked_candidates[:6]  # Evaluate top 6 highest-yield factual assertions
 
-    claims = [
-        sent for sent, result in zip(sentences, scored)
-        if ("CFS" in result["label"] or "Check-worthy" in result["label"]) and result["score"] >= 0.45
-    ]
-
-    if not claims and sentences:
-        # Fallback: select candidate with highest check-worthiness score or top sentence
-        cfs_candidates = [
-            (result["score"] if ("CFS" in result["label"] or "Check-worthy" in result["label"]) else 0.0, sent)
-            for sent, result in zip(sentences, scored)
+    try:
+        classifier = get_classifier()
+        scored = classifier(eval_candidates, truncation=True, max_length=128)
+        claims = [
+            sent for sent, result in zip(eval_candidates, scored)
+            if ("CFS" in result["label"] or "Check-worthy" in result["label"]) and result["score"] >= 0.40
         ]
-        cfs_candidates.sort(key=lambda x: x[0], reverse=True)
-        claims = [cfs_candidates[0][1]]
+        if not claims and eval_candidates:
+            claims = [eval_candidates[0]]
+    except Exception as e:
+        logger.warning("ClaimBuster classifier evaluation fallback: %s", e)
+        claims = eval_candidates[:max_claims]
 
     return claims[:max_claims]

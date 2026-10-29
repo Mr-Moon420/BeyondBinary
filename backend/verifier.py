@@ -167,7 +167,7 @@ def verify_claim(claim: str) -> Dict[str, Any]:
     confidences = []
     verdict_scores: Dict[str, List[float]] = {}
 
-    for ev in evidence:
+    for ev in evidence[:2]:  # Evaluate top 2 most authoritative corroborating snippets
         clean_ev = ev.strip()
         if not clean_ev:
             continue
@@ -177,7 +177,7 @@ def verify_claim(claim: str) -> Dict[str, Any]:
                 label = api_res["label"]
                 score = api_res["score"]
             else:
-                res = get_nli()({"text": clean_ev, "text_pair": claim}, truncation=True, max_length=512)
+                res = get_nli()({"text": clean_ev, "text_pair": claim}, truncation=True, max_length=128)
                 if isinstance(res, list):
                     res = res[0]
                 label = res["label"]

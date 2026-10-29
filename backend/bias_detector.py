@@ -52,7 +52,7 @@ def get_bias_classifier():
                 model=MODEL_NAME,
                 top_k=None,
                 truncation=True,
-                max_length=512,
+                max_length=128,
                 low_cpu_mem_usage=True
             )
             logger.info("Political bias model loaded successfully.")

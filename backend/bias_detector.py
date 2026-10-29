@@ -263,7 +263,7 @@ def classify_text_stance(text: str) -> Dict[str, Any]:
     center_scores: List[float] = []
     right_scores: List[float] = []
 
-    for chunk in chunks[:5]:  # Analyze up to top 5 chunks
+    for chunk in chunks[:1]:  # Analyze lead headline & context chunk for instant sub-second inference
         if not chunk.strip():
             continue
         try:

@@ -24,11 +24,11 @@ def _extract_years(text: str) -> List[str]:
 def _extract_numbers(text: str) -> List[str]:
     """Extract quantities, counts, and percentages from text."""
     matches = re.findall(
-        r"\b(?:\$\d+(?:\.\d+)?(?:\s*(?:billion|million|trillion))?|\d{1,3}(?:,\d{3})+(?:\.\d+)?|\d+(?:\.\d+)?%)\b",
+        r"(?<!\w)(?:\$\d[\d,]*(?:\.\d+)?(?:\s*(?:billion|million|trillion))?|\d[\d,]*(?:\.\d+)?%?)(?!\w)",
         text,
         re.IGNORECASE
     )
-    clean = [m for m in matches if m not in ("2020", "2021", "2022", "2023", "2024", "2025", "2026")]
+    clean = [m for m in matches if not re.fullmatch(r"(?:19|20)\d{2}", m)]
     return list(dict.fromkeys(clean))
 
 
@@ -91,7 +91,7 @@ def explain_verification(
     alignment_entities: List[str] = []
 
     # 1. TEMPORAL CHECK: Check for year discrepancies in contested claims
-    if claim_years and ev_years and verdict in ("Refuted", "Misleading-Framing", "Not Enough Info"):
+    if claim_years and ev_years and verdict in ("Refuted", "Misleading-Framing"):
         common_years = set(claim_years).intersection(set(ev_years))
         if not common_years:
             c_yr = claim_years[0]
@@ -103,8 +103,8 @@ def explain_verification(
                 "evidence_val": e_yr
             })
             rationale = (
-                f"Timeline discrepancy detected: The claim asserts an event occurred in {c_yr}, "
-                f"whereas verified reporting retrieved from {retrieval_source} documents the occurrence in {e_yr}."
+                f"The claim contains {c_yr}; retrieved text contains {e_yr}. "
+                "Different dates alone do not establish that the same event is contradicted; review the source passage."
             )
 
     # 2. QUANTITATIVE / NUMERICAL CHECK: Check for conflicting numbers

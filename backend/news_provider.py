@@ -79,6 +79,7 @@ class GNewsProvider:
 
             return {
                 "success": True,
+                "url": article.get("url", ""),
                 "title": article.get("title", ""),
                 "text": full_text,
                 "word_count": len(full_text.split()),

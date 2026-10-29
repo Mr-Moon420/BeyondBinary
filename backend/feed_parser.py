@@ -10,6 +10,8 @@ import requests
 import lxml.html
 from typing import Dict, Any, Optional, List
 from urllib.parse import urljoin, urlparse
+from article_identity import same_article_url
+from public_http import public_get, public_head
 
 logger = logging.getLogger("BeyondBinary.FeedParsing")
 if not logger.handlers:
@@ -27,7 +29,7 @@ def find_rss_feed_url(page_url: str) -> Optional[str]:
     """
     try:
         headers = {"User-Agent": USER_AGENT}
-        response = requests.get(page_url, headers=headers, timeout=5.0)
+        response = public_get(page_url, headers=headers, timeout=5.0)
         if response.status_code != 200:
             return None
 
@@ -52,7 +54,7 @@ def find_rss_feed_url(page_url: str) -> Optional[str]:
             test_url = urljoin(base_url, path)
             try:
                 # Use HEAD request to check existence without downloading body
-                head = requests.head(test_url, headers=headers, timeout=3.0, allow_redirects=True)
+                head = public_head(test_url, headers=headers, timeout=3.0, allow_redirects=True)
                 if head.status_code == 200 and ("xml" in head.headers.get("Content-Type", "").lower()):
                     return test_url
             except Exception:
@@ -79,7 +81,7 @@ def fetch_content_from_rss(article_url: str) -> Dict[str, Any]:
 
         logger.info("Attempting fallback fetch via RSS feed: %s", feed_url)
         headers = {"User-Agent": USER_AGENT}
-        response = requests.get(feed_url, headers=headers, timeout=10.0)
+        response = public_get(feed_url, headers=headers, timeout=10.0)
 
         if response.status_code != 200:
             return {"success": False, "error": f"RSS feed returned HTTP {response.status_code}"}
@@ -92,7 +94,7 @@ def fetch_content_from_rss(article_url: str) -> Dict[str, Any]:
         for item in items:
             # Find the link to the article
             link = item.xpath('./link/text()') or item.xpath('./link/@href')
-            if link and (link[0].strip() == article_url or article_url.strip() in link[0]):
+            if link and same_article_url(link[0].strip(), article_url):
                 # Extract Title
                 title = item.xpath('./title/text()')
                 title_text = title[0].strip() if title else "No Title"

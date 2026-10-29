@@ -27,13 +27,17 @@ export const EchoChamberMatrix: FC<EchoChamberMatrixProps> = ({ crossSource }) =
   const rightTotal = (distribution['Right'] || 0) + (distribution['Lean Right'] || 0);
 
   let balanceStatus: { label: string; desc: string; icon: any; style: string } = {
-    label: 'Balanced Verification Scope',
-    desc: 'Retrieved evidence spans an ideologically diverse spread of reporting.',
+    label: 'No measured left/right source skew',
+    desc: 'This describes the retrieved publisher ratings; it does not establish independent or diverse corroboration.',
     icon: <CheckCircle2 className="w-3.5 h-3.5 text-emerald-700" />,
     style: 'bg-emerald-50 text-emerald-900 border-emerald-200',
   };
 
-  if (total_rated > 0) {
+  if (total_rated === 0) {
+    balanceStatus = { ...balanceStatus, label: 'Political source balance unavailable',
+      desc: 'These sources are unrated in the local database. No political balance conclusion is available.',
+      style: 'bg-stone-50 text-stone-700 border-stone-200' };
+  } else {
     const leftPct = leftTotal / total_rated;
     const rightPct = rightTotal / total_rated;
     const imbalance = Math.abs(leftPct - rightPct);

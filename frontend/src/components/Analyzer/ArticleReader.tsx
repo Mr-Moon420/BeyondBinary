@@ -1,4 +1,4 @@
-import { useState, useMemo, type FC } from 'react';
+import { useState, useMemo, useEffect, type FC } from 'react';
 import {
   RotateCcw,
   FileText,
@@ -49,26 +49,15 @@ export const ArticleReader: FC<ArticleReaderProps> = ({
   const [selectedClaim, setSelectedClaim] = useState<VerifiedClaim | null>(null);
 
   // Automatically switch to inspector mode once analysis produces claims
-  useMemo(() => {
-    if (claims.length > 0) {
-      setViewMode('inspector');
-    }
-  }, [claims.length]);
+  useEffect(() => {
+    setViewMode(claims.length ? 'inspector' : 'editor');
+    setSelectedClaim(null);
+  }, [claims]);
 
   // Breakdown counts
   const supportedCount = claims.filter((c) => c.verdict === 'Supported').length;
   const contextCount = claims.filter((c) => c.verdict === 'Not Enough Info').length;
   const refutedCount = claims.filter((c) => c.verdict === 'Refuted' || c.verdict === 'Misleading-Framing').length;
-
-  // Normalized claim map for fast matching
-  const claimMap = useMemo(() => {
-    const map = new Map<string, VerifiedClaim>();
-    claims.forEach((c) => {
-      // Store clean stripped version
-      map.set(c.claim.trim().toLowerCase(), c);
-    });
-    return map;
-  }, [claims]);
 
   const loadedWordSet = useMemo(() => {
     return new Set(loadedWords.map((w) => w.toLowerCase()));
@@ -127,53 +116,13 @@ export const ArticleReader: FC<ArticleReaderProps> = ({
       }
     });
 
-    // If no exact match, fallback to fuzzy sentence matching
+    // Preserve every character in unselected paragraphs, including decimals.
     if (matchedClaimsInParagraph.length === 0) {
-      // Simple sentence regex split
-      const sentences = paragraphText.match(/[^.!?]+[.!?]+(\s|$)|[^.!?]+$/g) || [paragraphText];
       return (
         <p key={pIdx} className="mb-4 leading-relaxed font-sans text-stone-800 text-[14px]">
-          {sentences.map((sent, sIdx) => {
-            const cleanSent = sent.trim().toLowerCase();
-            const matched = claimMap.get(cleanSent);
-
-            if (matched) {
-              const style = getVerdictStyle(matched.verdict);
-              const isSelected = selectedClaim?.claim === matched.claim;
-              return (
-                <span
-                  key={sIdx}
-                  onClick={() => setSelectedClaim(matched)}
-                  className={`cursor-pointer transition-all px-1 py-0.5 rounded-sm mx-0.5 ${style.bg} ${
-                    isSelected ? 'ring-2 ring-stone-800 ring-offset-1 font-medium' : ''
-                  }`}
-                  title={`Click to inspect verification evidence: ${style.label}`}
-                >
-                  {sent}
-                </span>
-              );
-            }
-
-            // Highlight individual loaded words inside the sentence
-            return (
-              <span key={sIdx}>
-                {sent.split(/\b/).map((tok, tokIdx) => {
-                  if (loadedWordSet.has(tok.toLowerCase())) {
-                    return (
-                      <span
-                        key={tokIdx}
-                        className="bg-amber-100/90 text-amber-900 font-semibold underline decoration-wavy decoration-amber-500 px-0.5 rounded-xs"
-                        title={`Flagged loaded keyword: "${tok}"`}
-                      >
-                        {tok}
-                      </span>
-                    );
-                  }
-                  return tok;
-                })}
-              </span>
-            );
-          })}
+          {paragraphText.split(/\b/).map((tok, idx) => loadedWordSet.has(tok.toLowerCase()) ? (
+            <span key={idx} className="bg-amber-100/90 text-amber-900 font-semibold underline decoration-wavy decoration-amber-500 px-0.5 rounded-xs" title={`Flagged loaded keyword: "${tok}"`}>{tok}</span>
+          ) : tok)}
         </p>
       );
     }

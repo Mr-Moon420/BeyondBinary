@@ -32,6 +32,8 @@ async def fetch_with_playwright(url: str, timeout: float = 30.0) -> Dict[str, An
     Fetches page content using a headless browser with stealth settings.
     Includes aggressive resolution for Google News redirects.
     """
+    if os.getenv("BEYONDBINARY_PUBLIC", "1") == "1":
+        return {"success": False, "error": "Unrestricted browser fetching is disabled for the public app. Use direct extraction or paste the article text.", "html": ""}
     if os.getenv("RENDER") or not _HAS_PLAYWRIGHT or async_playwright is None:
         return {"success": False, "error": "Playwright disabled on cloud container.", "html": ""}
 

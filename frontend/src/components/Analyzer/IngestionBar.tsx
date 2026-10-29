@@ -8,7 +8,7 @@ interface IngestionBarProps {
   isFetchingUrl: boolean;
   inputMode: 'url' | 'paste';
   onChangeMode: (mode: 'url' | 'paste') => void;
-  articleMeta?: { title?: string; domain?: string; wordCount?: number } | null;
+  articleMeta?: { title?: string; domain?: string; wordCount?: number; contentKind?: string } | null;
 }
 
 export const IngestionBar: FC<IngestionBarProps> = ({
@@ -52,7 +52,7 @@ export const IngestionBar: FC<IngestionBarProps> = ({
 
         {articleMeta && articleMeta.wordCount ? (
           <span className="text-xs font-mono-data text-stone-600 bg-stone-100 px-2.5 py-0.5 rounded border border-stone-200">
-            {articleMeta.wordCount} words extracted
+            {articleMeta.contentKind === 'indexed_excerpt' ? 'Indexed excerpt · ' : ''}{articleMeta.wordCount} words extracted
           </span>
         ) : null}
       </div>

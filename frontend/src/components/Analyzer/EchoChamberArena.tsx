@@ -15,6 +15,7 @@ import {
 } from 'lucide-react';
 import type { CompareResponse, CompareRequest, VerifiedClaim } from '../../types/api';
 import { comparePerspectives } from '../../services/api';
+import { EvidenceTrace } from './EvidenceTrace';
 
 interface EchoChamberArenaProps {
   initialPerspectiveA?: { url?: string; title?: string; source?: string };
@@ -47,12 +48,13 @@ export const EchoChamberArena: FC<EchoChamberArenaProps> = ({
   }, []);
 
   const handleRunComparison = async () => {
-    if (!urlA.trim() && !titleA.trim()) {
-      setError('Please provide at least a URL or title for Source A.');
+    setComparisonResult(null);
+    if (!urlA.trim()) {
+      setError('Please provide the article URL for Source A. A title alone cannot be analysed.');
       return;
     }
-    if (!urlB.trim() && !titleB.trim()) {
-      setError('Please provide at least a URL or title for Source B.');
+    if (!urlB.trim()) {
+      setError('Please provide the article URL for Source B. A title alone cannot be analysed.');
       return;
     }
 
@@ -163,28 +165,31 @@ export const EchoChamberArena: FC<EchoChamberArenaProps> = ({
           <div className="p-3.5 bg-stone-50/60 rounded border border-stone-200">
             <div className="flex items-center justify-between mb-2">
               <span className="text-xs font-mono-data font-bold text-stone-800">
-                PERSPECTIVE A (Left / Center)
+                PERSPECTIVE A
               </span>
               <input
+                disabled={isLoading}
                 type="text"
                 placeholder="Outlet (e.g. CNN, MSNBC)"
                 value={sourceA}
-                onChange={(e) => setSourceA(e.target.value)}
+                onChange={(e) => { setSourceA(e.target.value); setComparisonResult(null); setError(null); }}
                 className="text-[11px] font-mono-data px-2 py-0.5 border border-stone-300 rounded bg-white w-40"
               />
             </div>
             <input
+              disabled={isLoading}
               type="text"
-              placeholder="Article URL (optional)"
+              placeholder="Article URL (required)"
               value={urlA}
-              onChange={(e) => setUrlA(e.target.value)}
+              onChange={(e) => { setUrlA(e.target.value); setSourceA(''); setTitleA(''); setComparisonResult(null); setError(null); }}
               className="w-full text-xs font-mono-data px-2.5 py-1.5 border border-stone-300 rounded bg-white mb-2"
             />
             <input
+              disabled={isLoading}
               type="text"
-              placeholder="Article Title or Core Framing"
+              placeholder="Article title (optional)"
               value={titleA}
-              onChange={(e) => setTitleA(e.target.value)}
+              onChange={(e) => { setTitleA(e.target.value); setComparisonResult(null); setError(null); }}
               className="w-full text-xs font-sans px-2.5 py-1.5 border border-stone-300 rounded bg-white"
             />
           </div>
@@ -193,28 +198,31 @@ export const EchoChamberArena: FC<EchoChamberArenaProps> = ({
           <div className="p-3.5 bg-stone-50/60 rounded border border-stone-200">
             <div className="flex items-center justify-between mb-2">
               <span className="text-xs font-mono-data font-bold text-stone-800">
-                PERSPECTIVE B (Right / Center)
+                PERSPECTIVE B
               </span>
               <input
+                disabled={isLoading}
                 type="text"
                 placeholder="Outlet (e.g. Fox News, WSJ)"
                 value={sourceB}
-                onChange={(e) => setSourceB(e.target.value)}
+                onChange={(e) => { setSourceB(e.target.value); setComparisonResult(null); setError(null); }}
                 className="text-[11px] font-mono-data px-2 py-0.5 border border-stone-300 rounded bg-white w-40"
               />
             </div>
             <input
+              disabled={isLoading}
               type="text"
-              placeholder="Article URL (optional)"
+              placeholder="Article URL (required)"
               value={urlB}
-              onChange={(e) => setUrlB(e.target.value)}
+              onChange={(e) => { setUrlB(e.target.value); setSourceB(''); setTitleB(''); setComparisonResult(null); setError(null); }}
               className="w-full text-xs font-mono-data px-2.5 py-1.5 border border-stone-300 rounded bg-white mb-2"
             />
             <input
+              disabled={isLoading}
               type="text"
-              placeholder="Article Title or Core Framing"
+              placeholder="Article title (optional)"
               value={titleB}
-              onChange={(e) => setTitleB(e.target.value)}
+              onChange={(e) => { setTitleB(e.target.value); setComparisonResult(null); setError(null); }}
               className="w-full text-xs font-sans px-2.5 py-1.5 border border-stone-300 rounded bg-white"
             />
           </div>
@@ -225,7 +233,7 @@ export const EchoChamberArena: FC<EchoChamberArenaProps> = ({
           {error && <span className="text-xs text-rose-600 font-mono-data">{error}</span>}
           {!error && (
             <span className="text-[11px] text-stone-500 font-mono-data">
-              Runs ClaimBuster DeBERTa + RoBERTa MNLI + Bias BERT on both articles simultaneously.
+              Analyses both articles with ClaimBuster, RoBERTa MNLI and Bias BERT.
             </span>
           )}
 
@@ -295,7 +303,7 @@ export const EchoChamberArena: FC<EchoChamberArenaProps> = ({
                       ? 'bg-amber-500'
                       : 'bg-emerald-500'
                   }`}
-                  style={{ width: `${Math.min(100, Math.max(5, comparisonResult.comparison.polarization_score))}%` }}
+                  style={{ width: `${Math.min(100, Math.max(0, comparisonResult.comparison.polarization_score))}%` }}
                 />
               </div>
               <div className="flex justify-between text-[10px] font-mono-data text-stone-400 mt-1">
@@ -313,6 +321,7 @@ export const EchoChamberArena: FC<EchoChamberArenaProps> = ({
                   Comparative Editorial Synthesis:
                 </span>
                 {comparisonResult.comparison.editorial_synthesis}
+                <p className="mt-2 text-stone-500">The index uses the larger of the stance-probability distance and the blended spectrum distance. Tone markers and factual claim verdicts are shown separately. Wording can affect the stance model.</p>
               </div>
             </div>
           </div>
@@ -343,7 +352,7 @@ export const EchoChamberArena: FC<EchoChamberArenaProps> = ({
                   <div className="text-right font-mono-data text-xs">
                     <span className="text-stone-400 block text-[9px]">CREDIBILITY</span>
                     <span className="font-bold text-stone-900">
-                      {comparisonResult.outlet_a.credibility_score}%
+                      {comparisonResult.outlet_a.claims.some(claim => claim.verdict === 'Supported' || claim.verdict === 'Refuted') ? `${comparisonResult.outlet_a.credibility_score}%` : 'Unresolved'}
                     </span>
                   </div>
                 </div>
@@ -399,6 +408,16 @@ export const EchoChamberArena: FC<EchoChamberArenaProps> = ({
                 )}
               </div>
 
+              <details className="p-4 border-b border-stone-100 text-xs">
+                <summary className="cursor-pointer font-semibold">Text behind stance and tone</summary>
+                <p className="mt-2 text-stone-500">Lead text sampled for stance; model input is token limited. These excerpts show the input, not word-level causal attribution.</p>
+                <blockquote className="mt-2 border-l-2 border-stone-300 pl-2">{comparisonResult.outlet_a.stance_excerpt}</blockquote>
+                <p className="mt-2 font-mono-data">Stance model: L {Math.round((comparisonResult.outlet_a.bias_analysis.stance.probabilities.left || 0) * 100)}% · C {Math.round((comparisonResult.outlet_a.bias_analysis.stance.probabilities.center || 0) * 100)}% · R {Math.round((comparisonResult.outlet_a.bias_analysis.stance.probabilities.right || 0) * 100)}%.</p>
+                <p className="mt-2">Publisher prior: {comparisonResult.outlet_a.bias_analysis.domain_rating ? `${comparisonResult.outlet_a.bias_analysis.domain_rating?.name} (${comparisonResult.outlet_a.bias_analysis.domain_rating?.bias}); 60% prior / 40% text spectrum blend.` : 'Unrated; text model only.'}</p>
+
+                {(comparisonResult.outlet_a.rhetoric_passages || []).map((passage, index) => <blockquote key={index} className="mt-3 border-l-2 border-amber-300 pl-2">…{passage}…</blockquote>)}
+              </details>
+
               {/* Key Verified Claims */}
               <div className="p-4 flex-1">
                 <span className="text-[10px] font-mono-data uppercase tracking-wider text-stone-400 block mb-2 font-medium">
@@ -418,6 +437,7 @@ export const EchoChamberArena: FC<EchoChamberArenaProps> = ({
                           </span>
                         </div>
                         <p className="text-stone-800">{c.claim}</p>
+                        <EvidenceTrace claim={c} />
                       </div>
                     ))}
                   </div>
@@ -451,7 +471,7 @@ export const EchoChamberArena: FC<EchoChamberArenaProps> = ({
                   <div className="text-right font-mono-data text-xs">
                     <span className="text-stone-400 block text-[9px]">CREDIBILITY</span>
                     <span className="font-bold text-stone-900">
-                      {comparisonResult.outlet_b.credibility_score}%
+                      {comparisonResult.outlet_b.claims.some(claim => claim.verdict === 'Supported' || claim.verdict === 'Refuted') ? `${comparisonResult.outlet_b.credibility_score}%` : 'Unresolved'}
                     </span>
                   </div>
                 </div>
@@ -507,6 +527,16 @@ export const EchoChamberArena: FC<EchoChamberArenaProps> = ({
                 )}
               </div>
 
+              <details className="p-4 border-b border-stone-100 text-xs">
+                <summary className="cursor-pointer font-semibold">Text behind stance and tone</summary>
+                <p className="mt-2 text-stone-500">Lead text sampled for stance; model input is token limited. These excerpts show the input, not word-level causal attribution.</p>
+                <blockquote className="mt-2 border-l-2 border-stone-300 pl-2">{comparisonResult.outlet_b.stance_excerpt}</blockquote>
+                <p className="mt-2 font-mono-data">Stance model: L {Math.round((comparisonResult.outlet_b.bias_analysis.stance.probabilities.left || 0) * 100)}% · C {Math.round((comparisonResult.outlet_b.bias_analysis.stance.probabilities.center || 0) * 100)}% · R {Math.round((comparisonResult.outlet_b.bias_analysis.stance.probabilities.right || 0) * 100)}%.</p>
+                <p className="mt-2">Publisher prior: {comparisonResult.outlet_b.bias_analysis.domain_rating ? `${comparisonResult.outlet_b.bias_analysis.domain_rating?.name} (${comparisonResult.outlet_b.bias_analysis.domain_rating?.bias}); 60% prior / 40% text spectrum blend.` : 'Unrated; text model only.'}</p>
+
+                {(comparisonResult.outlet_b.rhetoric_passages || []).map((passage, index) => <blockquote key={index} className="mt-3 border-l-2 border-amber-300 pl-2">…{passage}…</blockquote>)}
+              </details>
+
               {/* Key Verified Claims */}
               <div className="p-4 flex-1">
                 <span className="text-[10px] font-mono-data uppercase tracking-wider text-stone-400 block mb-2 font-medium">
@@ -526,6 +556,7 @@ export const EchoChamberArena: FC<EchoChamberArenaProps> = ({
                           </span>
                         </div>
                         <p className="text-stone-800">{c.claim}</p>
+                        <EvidenceTrace claim={c} />
                       </div>
                     ))}
                   </div>
@@ -544,7 +575,7 @@ export const EchoChamberArena: FC<EchoChamberArenaProps> = ({
                 <span className="font-bold text-stone-900 block font-mono-data uppercase text-[11px]">
                   Evaluation Takeaway:
                 </span>
-                Both outlets present factual assertions, but divergent editorial framing creates an informational echo chamber.
+                {comparisonResult.comparison.divergence_description}
               </div>
             </div>
 

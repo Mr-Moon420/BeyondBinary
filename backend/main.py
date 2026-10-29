@@ -19,9 +19,11 @@ import json
 import os
 import logging
 import concurrent.futures
+import threading
+import uuid
 from typing import Optional, List, Dict, Any, Tuple
 from urllib.parse import urlparse
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
@@ -31,7 +33,7 @@ try:
 except (ImportError, ModuleNotFoundError):
     _HAS_GNEWS_DECODER = False
     gnewsdecoder = None
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from claim_extractor import extract_claims
 from scorer import compute_score
@@ -126,14 +128,6 @@ def _lookup_publisher(
                 "bias": info.get("bias", "Unrated"),
                 "score": info.get("score", None)
             }
-        for k, info in _ALLSIDES_BY_NAME.items():
-            if (len(k) > 3 and k in clean) or (len(clean) > 3 and clean in k):
-                return {
-                    "domain": info.get("domain", ""),
-                    "name": info.get("name", source_name),
-                    "bias": info.get("bias", "Unrated"),
-                    "score": info.get("score", None)
-                }
 
     clean_name = source_name or _extract_domain(url) or "Syndicated Press"
     return {
@@ -159,14 +153,14 @@ app.add_middleware(
 
 
 class ArticleInput(BaseModel):
-    text: Optional[str] = ""
-    url: Optional[str] = None
-    title: Optional[str] = None
+    text: Optional[str] = Field(default="", max_length=100000)
+    url: Optional[str] = Field(default=None, max_length=2048)
+    title: Optional[str] = Field(default=None, max_length=500)
 
 
 class UrlInput(BaseModel):
-    url: str
-    title: Optional[str] = None
+    url: str = Field(max_length=2048)
+    title: Optional[str] = Field(default=None, max_length=500)
 
 
 _FRONTEND_DIST = os.path.join(_BASE_DIR, "frontend", "dist")
@@ -175,10 +169,26 @@ if os.path.exists(_FRONTEND_DIST) and os.path.exists(os.path.join(_FRONTEND_DIST
 
 @app.on_event("startup")
 def on_startup():
-    """Pre-warm tokenizers and embedders on server boot for instant sub-second response times."""
+    """Load the embedder and optionally warm all classifiers before serving."""
     try:
         from verifier import get_embedder
         get_embedder()
+        if os.getenv("BEYONDBINARY_PREWARM") == "1":
+            from claim_extractor import get_classifier, get_nlp
+            from verifier import get_nli
+            from bias_detector import get_bias_classifier
+            from model_runtime import inference_slot
+            sample = "Paris is the capital of France."
+            get_nlp()(sample)
+            for classifier, payload in (
+                (get_classifier(), sample),
+                (get_nli(), {"text": sample, "text_pair": sample}),
+                (get_bias_classifier(), sample),
+            ):
+                if classifier is None:
+                    raise RuntimeError("A classifier could not be loaded during warm-up")
+                with inference_slot():
+                    classifier(payload, truncation=True, max_length=128)
         logger.info("Server startup pre-warming complete.")
     except Exception as e:
         logger.warning("Startup pre-warming notice: %s", e)
@@ -248,6 +258,7 @@ def analyze(article: ArticleInput):
             }
         input_text = fetch_res["text"]
         article_title = fetch_res["title"]
+        source_url = fetch_res.get("url") or source_url
     elif source_url and not input_text:
         fetch_res = fetch_article_from_url(source_url, title=article.title)
         if not fetch_res["success"]:
@@ -259,6 +270,7 @@ def analyze(article: ArticleInput):
             }
         input_text = fetch_res["text"]
         article_title = fetch_res["title"]
+        source_url = fetch_res.get("url") or source_url
 
     if not input_text:
         return {
@@ -273,7 +285,7 @@ def analyze(article: ArticleInput):
 
     # 3. Evidence retrieval & NLI verification (parallelized across claims for 3x speedup)
     with concurrent.futures.ThreadPoolExecutor(max_workers=3) as executor:
-        verified_claims = list(executor.map(verify_claim, claims[:3]))
+        verified_claims = list(executor.map(lambda claim: verify_claim(claim, source_url=source_url), claims[:3]))
 
     # Collect retrieved evidence sources for cross-source bias grounding
     collected_sources = []
@@ -288,7 +300,7 @@ def analyze(article: ArticleInput):
     )
 
     # 5. Composite calibrated credibility scoring
-    loaded_density = bias_result.get("framing_analysis", {}).get("density_pct", 0.0)
+    loaded_density = bias_result.get("loaded_language", {}).get("density_pct", 0.0)
     credibility_score = compute_score(verified_claims, loaded_density_pct=loaded_density)
 
     provider = get_search_provider()
@@ -313,15 +325,15 @@ def analyze(article: ArticleInput):
 # ── Echo Chamber Comparison Endpoint ──────────────────────────────
 
 class CompareRequest(BaseModel):
-    url_a: Optional[str] = None
-    text_a: Optional[str] = None
-    title_a: Optional[str] = None
-    source_a: Optional[str] = None
+    url_a: Optional[str] = Field(default=None, max_length=2048)
+    text_a: Optional[str] = Field(default=None, max_length=100000)
+    title_a: Optional[str] = Field(default=None, max_length=500)
+    source_a: Optional[str] = Field(default=None, max_length=200)
 
-    url_b: Optional[str] = None
-    text_b: Optional[str] = None
-    title_b: Optional[str] = None
-    source_b: Optional[str] = None
+    url_b: Optional[str] = Field(default=None, max_length=2048)
+    text_b: Optional[str] = Field(default=None, max_length=100000)
+    title_b: Optional[str] = Field(default=None, max_length=500)
+    source_b: Optional[str] = Field(default=None, max_length=200)
 
 
 def _analyze_outlet_payload(
@@ -347,37 +359,24 @@ def _analyze_outlet_payload(
         fetch_res = fetch_article_from_url(url, title=fallback_title)
         if fetch_res.get("success"):
             input_text = fetch_res.get("text", "")
+            url = fetch_res.get("url") or url
             if fetch_res.get("title"):
                 article_title = fetch_res["title"]
         else:
             logger.warning("Failed to fetch outlet URL: %s", url)
 
-    if not source_name and url:
+    if url:
         dom = _extract_domain(url)
-        pub_info = _lookup_publisher(dom)
+        pub_info = _lookup_publisher(url)
         source_name = pub_info.get("name") or dom
 
     if not input_text:
-        return {
-            "title": article_title,
-            "source_name": source_name or "Unknown Source",
-            "source_url": url or "",
-            "credibility_score": 50.0,
-            "claims": [],
-            "bias_analysis": {
-                "bias_label": "Center",
-                "spectrum_score": 0.0,
-                "confidence": 0.5,
-                "stance": {"probabilities": {"Left": 0.33, "Center": 0.34, "Right": 0.33}},
-                "loaded_language": {"density_pct": 0.0, "loaded_words": []}
-            },
-            "error": "Could not extract sufficient text."
-        }
+        raise HTTPException(status_code=422, detail=f"Could not extract article text for {source_name or url or 'this perspective'}. Open the publisher article or paste its text.")
 
     # 1. Claims extraction (top 3 key claims for comparison efficiency)
     claims = extract_claims(input_text, max_claims=3)
     with concurrent.futures.ThreadPoolExecutor(max_workers=3) as executor:
-        verified_claims = list(executor.map(verify_claim, claims[:3]))
+        verified_claims = list(executor.map(lambda claim: verify_claim(claim, source_url=url), claims[:3]))
 
     # 2. Evidence sources collection
     sources = []
@@ -403,6 +402,12 @@ def _analyze_outlet_payload(
         "claims": verified_claims,
         "bias_analysis": bias_res,
         "word_count": len(input_text.split()),
+        "stance_excerpt": " ".join(input_text.split()[:150]),
+        "rhetoric_passages": list(dict.fromkeys(
+            input_text[max(0, match.start() - 60):min(len(input_text), match.end() + 100)]
+            for word in bias_res.get("loaded_language", {}).get("detected_words", [])[:4]
+            for match in list(re.finditer(r"\b" + re.escape(word) + r"\b", input_text, flags=re.IGNORECASE))[:1]
+        )),
         "summary": input_text[:350] + "..." if len(input_text) > 350 else input_text
     }
 
@@ -415,13 +420,13 @@ def _compute_echo_chamber_divergence(outlet_a: Dict[str, Any], outlet_b: Dict[st
     stance_a = bias_a.get("stance") or {}
     stance_b = bias_b.get("stance") or {}
 
-    probs_a = stance_a.get("probabilities") or {"Left": 0.33, "Center": 0.34, "Right": 0.33}
-    probs_b = stance_b.get("probabilities") or {"Left": 0.33, "Center": 0.34, "Right": 0.33}
+    probs_a = {key.lower(): value for key, value in (stance_a.get("probabilities") or {"left": 0.33, "center": 0.34, "right": 0.33}).items()}
+    probs_b = {key.lower(): value for key, value in (stance_b.get("probabilities") or {"left": 0.33, "center": 0.34, "right": 0.33}).items()}
 
     # Total Variation Distance on stance distribution (0.0 to 100.0)
-    l_diff = abs(probs_a.get("Left", 0) - probs_b.get("Left", 0))
-    c_diff = abs(probs_a.get("Center", 0) - probs_b.get("Center", 0))
-    r_diff = abs(probs_a.get("Right", 0) - probs_b.get("Right", 0))
+    l_diff = abs(probs_a.get("left", 0) - probs_b.get("left", 0))
+    c_diff = abs(probs_a.get("center", 0) - probs_b.get("center", 0))
+    r_diff = abs(probs_a.get("right", 0) - probs_b.get("right", 0))
     tv_divergence = 0.5 * (l_diff + c_diff + r_diff) * 100.0
 
     # Domain rating spectrum distance if available (-1.0 to 1.0)
@@ -445,14 +450,14 @@ def _compute_echo_chamber_divergence(outlet_a: Dict[str, Any], outlet_b: Dict[st
 
     # Categorize divergence level
     if polarization_score >= 55.0:
-        divergence_level = "High Polarization (Echo Chamber Divergence)"
-        divergence_desc = "Outlets exhibit sharp ideological divergence and opposing framing."
+        divergence_level = "High ideological divergence"
+        divergence_desc = "The modelled political signals differ strongly. Review the text samples, publisher priors and claim evidence below."
     elif polarization_score >= 25.0:
-        divergence_level = "Moderate Divergence (Editorial Framing Variance)"
-        divergence_desc = "Outlets share some factual core but emphasize different partisan narratives."
+        divergence_level = "Moderate ideological divergence"
+        divergence_desc = "The modelled political signals show some difference. Factual claims require the separate evidence checks below."
     else:
-        divergence_level = "Low Divergence (Consensus Reporting)"
-        divergence_desc = "Both outlets exhibit neutral or concordant coverage of this event."
+        divergence_level = "Low ideological divergence"
+        divergence_desc = "The modelled political signals are similar. This alone does not establish agreement on facts or balanced reporting."
 
     name_a = outlet_a.get("source_name", "Source A")
     name_b = outlet_b.get("source_name", "Source B")
@@ -484,7 +489,7 @@ def _compute_echo_chamber_divergence(outlet_a: Dict[str, Any], outlet_b: Dict[st
 
 
 @app.post("/compare")
-async def compare_perspectives(request: CompareRequest):
+def compare_perspectives(request: CompareRequest):
     """
     Side-by-Side Echo Chamber Comparison Endpoint.
     Analyzes two perspectives of the same story and calculates
@@ -510,6 +515,54 @@ async def compare_perspectives(request: CompareRequest):
         "outlet_b": outlet_b,
         "comparison": divergence
     }
+
+
+# Keep each public HTTP request short while preserving the full comparison.
+# One worker avoids loading/using several copies of the CPU models at once.
+_COMPARE_EXECUTOR = concurrent.futures.ThreadPoolExecutor(max_workers=1)
+_COMPARE_JOBS: Dict[str, Tuple[float, concurrent.futures.Future]] = {}
+_COMPARE_JOB_LOCK = threading.Lock()
+
+
+@app.post("/compare/jobs", status_code=202)
+def start_comparison(request: CompareRequest):
+    if not (request.url_a or (request.text_a or "").strip()) or not (
+        request.url_b or (request.text_b or "").strip()
+    ):
+        raise HTTPException(status_code=422, detail="Provide an article URL or text for both perspectives.")
+    with _COMPARE_JOB_LOCK:
+        now = time.monotonic()
+        for job_id, (created, future) in list(_COMPARE_JOBS.items()):
+            if future.done() and now - created > 1800:
+                del _COMPARE_JOBS[job_id]
+        if sum(not future.done() for _, future in _COMPARE_JOBS.values()) >= 4:
+            raise HTTPException(status_code=429, detail="Comparison is busy. Please try again shortly.")
+        # Bound retained results as well as queued work.
+        if len(_COMPARE_JOBS) >= 20:
+            oldest_done = next((key for key, (_, future) in _COMPARE_JOBS.items() if future.done()), None)
+            if oldest_done:
+                del _COMPARE_JOBS[oldest_done]
+        job_id = uuid.uuid4().hex
+        _COMPARE_JOBS[job_id] = (now, _COMPARE_EXECUTOR.submit(compare_perspectives, request))
+    return {"job_id": job_id, "status": "pending"}
+
+
+@app.get("/compare/jobs/{job_id}")
+def comparison_status(job_id: str):
+    with _COMPARE_JOB_LOCK:
+        job = _COMPARE_JOBS.get(job_id)
+    if job is None:
+        raise HTTPException(status_code=404, detail="Comparison expired or the server restarted. Please run it again.")
+    future = job[1]
+    if not future.done():
+        return {"status": "running" if future.running() else "pending"}
+    try:
+        return {"status": "complete", "result": future.result()}
+    except HTTPException:
+        raise
+    except Exception:
+        logger.exception("Comparison job %s failed", job_id)
+        raise HTTPException(status_code=500, detail="Comparison failed. Please try again.")
 
 
 # ── Trending News Feed ──────────────────────────────────────────────

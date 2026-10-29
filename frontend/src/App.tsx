@@ -42,12 +42,12 @@ export function App() {
 
   const handleComparePerspectives = (article: TrendingArticle) => {
     const p = article.perspectives || [];
-    const pA = p[0] || { title: article.title, source: article.publisher.name, url: article.url };
-    const pB = p[1] || { title: article.title, source: 'Opposing Wire Perspective' };
+    const pA = { title: article.title, source: article.publisher.name, url: article.url };
+    const pB = p.find(perspective => perspective.url && perspective.url !== article.url);
 
     setCompareData({
       perspectiveA: { url: pA.url, title: pA.title, source: pA.source },
-      perspectiveB: { url: pB.url, title: pB.title, source: pB.source },
+      perspectiveB: pB ? { url: pB.url, title: pB.title, source: pB.source } : undefined,
     });
     setActiveTab('compare');
     window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -71,6 +71,7 @@ export function App() {
           />
         ) : activeTab === 'analyzer' ? (
           <Workbench
+            onResetContext={() => setSelectedArticle(null)}
             initialUrl={selectedArticle?.url}
             initialTitle={selectedArticle?.title}
             initialSnippet={selectedArticle?.snippet}

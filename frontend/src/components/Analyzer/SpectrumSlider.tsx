@@ -65,7 +65,7 @@ export const SpectrumSlider: FC<SpectrumSliderProps> = ({ bias }) => {
         <div className="p-3 bg-stone-50 rounded border border-stone-200/80">
           <div className="flex items-center gap-1 text-stone-500 text-[11px] font-mono-data uppercase mb-1">
             <BookOpen className="w-3 h-3 text-stone-400" />
-            <span>AllSides Domain Prior (60%)</span>
+            <span>AllSides Domain Prior ({bias.domain_rating ? '60%' : 'not used'})</span>
           </div>
           <div className="font-semibold text-stone-900">
             {bias.domain_rating ? (
@@ -86,7 +86,7 @@ export const SpectrumSlider: FC<SpectrumSliderProps> = ({ bias }) => {
         <div className="p-3 bg-stone-50 rounded border border-stone-200/80">
           <div className="flex items-center gap-1 text-stone-500 text-[11px] font-mono-data uppercase mb-1">
             <BrainCircuit className="w-3 h-3 text-stone-400" />
-            <span>BERT Text Model (40%)</span>
+            <span>BERT Text Model ({bias.domain_rating ? '40%' : '100%'})</span>
           </div>
           <div className="font-mono-data text-xs text-stone-800 flex items-center gap-2 font-semibold">
             <span className="text-blue-900">

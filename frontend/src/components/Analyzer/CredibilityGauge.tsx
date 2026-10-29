@@ -8,14 +8,15 @@ interface CredibilityGaugeProps {
 }
 
 export const CredibilityGauge: FC<CredibilityGaugeProps> = ({ score, claims }) => {
+  const unresolved = !claims.some(claim => claim.verdict === 'Supported' || claim.verdict === 'Refuted');
   const isHigh = score >= 70;
   const isMedium = score >= 40 && score < 70;
 
-  const verdictLabel = isHigh
-    ? 'High Factual Integrity'
+  const verdictLabel = unresolved ? 'Insufficient evidence for a factual score' : isHigh
+    ? 'Selected claims mostly supported'
     : isMedium
-    ? 'Mixed / Contested Reporting'
-    : 'Significant Factual Deficiencies';
+    ? 'Mixed results among selected claims'
+    : 'Selected claims mostly refuted';
 
   const verdictBadgeStyle = isHigh
     ? 'bg-emerald-50 text-emerald-900 border-emerald-200'
@@ -43,7 +44,7 @@ export const CredibilityGauge: FC<CredibilityGaugeProps> = ({ score, claims }) =
         <div className="flex items-center gap-2">
           <FileCheck className="w-4 h-4 text-stone-700" />
           <span className="text-xs font-mono-data uppercase font-bold tracking-wider text-stone-900">
-            Factual Accuracy Assessment
+            Selected-Claim Assessment
           </span>
         </div>
         <span className="text-[11px] font-mono-data text-stone-400">
@@ -56,14 +57,14 @@ export const CredibilityGauge: FC<CredibilityGaugeProps> = ({ score, claims }) =
         <div>
           <div className="flex items-baseline gap-2">
             <span className="text-5xl sm:text-6xl font-editorial font-bold text-stone-900 tracking-tight">
-              {score.toFixed(1)}
+              {unresolved ? '—' : score.toFixed(1)}
             </span>
             <span className="text-xl font-editorial text-stone-400 font-normal">
               / 100
             </span>
           </div>
           <p className="text-xs text-stone-500 font-mono-data mt-1">
-            Confidence-weighted premise inference score
+            Covers {claims.length} selected claim{claims.length === 1 ? '' : 's'}. Other sentences are not assessed.
           </p>
         </div>
 
@@ -79,7 +80,7 @@ export const CredibilityGauge: FC<CredibilityGaugeProps> = ({ score, claims }) =
           className={`h-full transition-all duration-700 ${
             isHigh ? 'bg-emerald-700' : isMedium ? 'bg-amber-600' : 'bg-rose-700'
           }`}
-          style={{ width: `${Math.min(100, Math.max(0, score))}%` }}
+          style={{ width: `${unresolved ? 0 : Math.min(100, Math.max(0, score))}%` }}
         />
       </div>
 

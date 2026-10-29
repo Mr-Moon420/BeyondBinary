@@ -10,6 +10,7 @@ import threading
 from typing import List
 import spacy
 from transformers import pipeline
+from model_runtime import pipeline_options, inference_slot
 
 logger = logging.getLogger("BeyondBinary.ClaimExtractor")
 if not logger.handlers:
@@ -46,15 +47,17 @@ def get_classifier():
                     _classifier = pipeline(
                         "text-classification",
                         model="whispAI/ClaimBuster-DeBERTaV2",
-                        dtype=torch.bfloat16,
-                        low_cpu_mem_usage=True
+                        **pipeline_options()
                     )
-                except Exception:
+                except Exception as e:
+                    logger.warning("Preferred ClaimBuster runtime failed; using CPU: %s", e)
                     _classifier = pipeline(
                         "text-classification",
                         model="whispAI/ClaimBuster-DeBERTaV2",
+                        device=-1,
                         low_cpu_mem_usage=True
                     )
+                logger.info("ClaimBuster ready on %s", _classifier.device)
     return _classifier
 
 
@@ -93,7 +96,8 @@ def extract_claims(text: str, max_claims: int = 5) -> List[str]:
 
     try:
         classifier = get_classifier()
-        scored = classifier(eval_candidates, truncation=True, max_length=128)
+        with inference_slot():
+            scored = classifier(eval_candidates, truncation=True, max_length=128)
         claims = [
             sent for sent, result in zip(eval_candidates, scored)
             if ("CFS" in result["label"] or "Check-worthy" in result["label"]) and result["score"] >= 0.40

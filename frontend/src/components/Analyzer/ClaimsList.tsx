@@ -11,6 +11,7 @@ import {
 } from 'lucide-react';
 import type { VerifiedClaim } from '../../types/api';
 import { getVerdictBadgeColor } from '../../utils/helpers';
+import { EvidenceTrace } from './EvidenceTrace';
 
 interface ClaimsListProps {
   claims: VerifiedClaim[];
@@ -148,6 +149,8 @@ export const ClaimsList: FC<ClaimsListProps> = ({ claims }) => {
                   )}
                 </div>
               )}
+
+              <EvidenceTrace claim={claim} />
 
               {/* Misleading Framing Banner */}
               {claim.framing_analysis?.is_misleading && (

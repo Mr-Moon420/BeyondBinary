@@ -19,6 +19,8 @@ import requests
 import torch
 import numpy as np
 from transformers import pipeline
+import threading
+from model_runtime import pipeline_options, inference_slot
 
 logger = logging.getLogger("BeyondBinary.BiasDetector")
 if not logger.handlers:
@@ -41,8 +43,14 @@ else:
 
 MODEL_NAME = "theArif/mbzuai-political-bias-bert"
 _bias_classifier = None
+_bias_classifier_lock = threading.RLock()
 
 def get_bias_classifier():
+    with _bias_classifier_lock:
+        return _load_bias_classifier()
+
+
+def _load_bias_classifier():
     global _bias_classifier
     if _bias_classifier is None:
         logger.info("Loading political bias model '%s'...", MODEL_NAME)
@@ -54,11 +62,11 @@ def get_bias_classifier():
                 top_k=None,
                 truncation=True,
                 max_length=128,
-                dtype=torch.bfloat16,
-                low_cpu_mem_usage=True
+                **pipeline_options()
             )
-            logger.info("Political bias model loaded successfully.")
+            logger.info("Political bias model ready on %s", _bias_classifier.device)
         except Exception as e:
+            logger.warning("Preferred bias runtime failed; using CPU: %s", e)
             try:
                 _bias_classifier = pipeline(
                     "text-classification",
@@ -66,6 +74,7 @@ def get_bias_classifier():
                     top_k=None,
                     truncation=True,
                     max_length=128,
+                    device=-1,
                     low_cpu_mem_usage=True
                 )
             except Exception as e2:
@@ -294,7 +303,8 @@ def classify_text_stance(text: str) -> Dict[str, Any]:
                 if clf is None:
                     clf = get_bias_classifier()
                 if clf:
-                    raw_res = clf(chunk)
+                    with inference_slot():
+                        raw_res = clf(chunk)
                     items = raw_res[0] if isinstance(raw_res[0], list) else raw_res
 
             if items:

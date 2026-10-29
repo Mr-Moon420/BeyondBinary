@@ -255,6 +255,6 @@ def fetch_web_evidence(claim: str, max_results: int = 3) -> Tuple[List[str], Lis
     - sources: metadata list (title, url, snippet, source_type)
     """
     provider = get_search_provider()
-    results = provider.search(claim, count=max_results)
+    results = [result for result in provider.search(claim, count=max_results) if result.get("evidence_text")]
     evidence_texts = [r["evidence_text"] for r in results if r.get("evidence_text")]
     return evidence_texts, results

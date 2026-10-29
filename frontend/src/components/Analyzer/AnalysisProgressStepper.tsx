@@ -139,7 +139,7 @@ export const AnalysisProgressStepper: FC<AnalysisProgressStepperProps> = ({
           <span className="text-stone-300">•</span>
           <div className="flex items-center gap-1.5">
             <Cpu className="w-3.5 h-3.5 text-stone-500" />
-            <span>Local CPU Engine</span>
+            <span>Evidence analysis</span>
           </div>
         </div>
       </div>
@@ -218,7 +218,7 @@ export const AnalysisProgressStepper: FC<AnalysisProgressStepperProps> = ({
                       : 'bg-stone-100 text-stone-600 border-stone-200'
                   }`}
                 >
-                  {isDone ? '✓ Completed' : isActive ? 'Active Inference...' : stage.model}
+                  {isDone ? 'Estimated stage' : isActive ? 'Active Inference...' : stage.model}
                 </span>
               </div>
             </div>
@@ -230,9 +230,9 @@ export const AnalysisProgressStepper: FC<AnalysisProgressStepperProps> = ({
       <div className="mt-4 pt-3 border-t border-stone-100 flex items-center justify-between text-[11px] font-mono-data text-stone-500">
         <span className="flex items-center gap-1.5">
           <Sparkles className="w-3.5 h-3.5 text-stone-400" />
-          <span>Deterministic Transformer Pipeline grounded in retrieved evidence</span>
+          <span>Stage indicators estimate progress; the server confirms completion</span>
         </span>
-        <span className="text-stone-400">Zero Generative Hallucination</span>
+        <span className="text-stone-400">Review evidence and model limitations</span>
       </div>
     </div>
   );

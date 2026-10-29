@@ -77,7 +77,7 @@ export async function analyzeArticle(payload: {
 
 
 export async function comparePerspectives(payload: CompareRequest): Promise<CompareResponse> {
-  const res = await fetch(`${API_BASE_URL}/compare`, {
+  const res = await fetch(`${API_BASE_URL}/compare/jobs`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -87,8 +87,24 @@ export async function comparePerspectives(payload: CompareRequest): Promise<Comp
   });
 
   if (!res.ok) {
+    const error = await res.json().catch(() => null);
+    if (typeof error?.detail === 'string') throw new Error(error.detail);
     throw new Error(`Perspective comparison failed (HTTP ${res.status})`);
   }
 
-  return res.json();
+  const { job_id } = await res.json();
+  // Poll with short requests so the public proxy cannot time out the analysis.
+  for (;;) {
+    await new Promise(resolve => setTimeout(resolve, 1500));
+    const status = await fetch(`${API_BASE_URL}/compare/jobs/${job_id}`, {
+      headers: { Accept: 'application/json' },
+      cache: 'no-store',
+    });
+    const data = await status.json().catch(() => null);
+    if (!status.ok) {
+      throw new Error(typeof data?.detail === 'string'
+        ? data.detail : `Perspective comparison failed (HTTP ${status.status})`);
+    }
+    if (data?.status === 'complete') return data.result;
+  }
 }

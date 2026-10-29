@@ -5,6 +5,8 @@ __pycache__/
 
 # Environment variables
 .env
+.env.*
+!.env.example
 
 # Local test pipeline
 test_pipeline.py
@@ -15,3 +17,6 @@ env/
 .venv/
 
 scratch/
+
+# Local agent session state
+.claude-flow/

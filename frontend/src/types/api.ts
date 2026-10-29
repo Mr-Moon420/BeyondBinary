@@ -33,6 +33,19 @@ export interface XAIRationale {
 }
 
 export interface VerifiedClaim {
+  evidence_trace?: {
+    id: string;
+    source: EvidenceSource;
+    sentence: string;
+    eligible: boolean;
+    eligibility_reason: string;
+    similarity: number | null;
+    probabilities: { entailment: number; contradiction: number; neutral: number } | null;
+    without_verdict: string;
+    verdict_changes_without: boolean;
+    support_margin_change: number;
+  }[];
+  decision?: { reason: string; most_influential_evidence: string | null; method: string; evaluated_count: number; eligible_count: number };
   claim: string;
   verdict: 'Supported' | 'Refuted' | 'Misleading-Framing' | 'Not Enough Info';
   confidence: number;
@@ -135,6 +148,7 @@ export interface TrendingResponse {
 }
 
 export interface FetchUrlResponse {
+  content_kind?: 'article' | 'indexed_excerpt';
   success: boolean;
   url: string;
   domain: string;
@@ -145,6 +159,8 @@ export interface FetchUrlResponse {
 }
 
 export interface CompareOutlet {
+  stance_excerpt?: string;
+  rhetoric_passages?: string[];
   title: string;
   source_name: string;
   source_url?: string;

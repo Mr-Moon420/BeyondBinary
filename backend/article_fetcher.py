@@ -16,6 +16,8 @@ import requests
 from feed_parser import fetch_content_from_rss
 from news_provider import get_news_provider
 from playwright_fetcher import sync_fetch_with_playwright
+from article_identity import same_article_url
+from public_http import public_get, public_destination
 
 try:
     from googlenewsdecoder import gnewsdecoder
@@ -35,7 +37,7 @@ USER_AGENT = (
 
 def resolve_google_news_url(url: str) -> str:
     """Resolve a Google News article wrapper to its publisher URL."""
-    if "news.google.com" not in url:
+    if urlparse(url).hostname != "news.google.com":
         return url
     if not _HAS_GNEWS_DECODER or gnewsdecoder is None:
         return url
@@ -207,7 +209,8 @@ def _query_search_bypass(query: str, original_url: str, original_domain: str, or
             clean_q = " ".join(words[:12])
 
         logger.info("Attempting Search Bypass for query: '%s'", clean_q)
-        search_results = search_prov.search(clean_q, count=4)
+        search_results = [result for result in search_prov.search(clean_q, count=4)
+                          if same_article_url(result.get("url", ""), original_url)]
         if not search_results:
             return None
 
@@ -224,8 +227,8 @@ def _query_search_bypass(query: str, original_url: str, original_domain: str, or
                 continue
 
             try:
-                cand_resp = requests.get(cand_url, headers=headers, timeout=2.5, allow_redirects=True)
-                if cand_resp.status_code == 200:
+                cand_resp = public_get(cand_url, headers=headers, timeout=2.5, allow_redirects=True)
+                if cand_resp.status_code == 200 and same_article_url(cand_resp.url, original_url):
                     cand_parse = _parse_html_content(cand_resp.text, cand_resp.url, extract_domain(cand_resp.url) or cand_domain)
                     if cand_parse.get("success") and cand_parse.get("word_count", 0) >= 45:
                         logger.info("Search Bypass directly extracted %d words from publisher: %s", cand_parse["word_count"], cand_url)
@@ -233,7 +236,9 @@ def _query_search_bypass(query: str, original_url: str, original_domain: str, or
             except Exception as e:
                 logger.debug("Direct candidate fetch failed for %s: %s", cand_url, e)
 
-        # Step B: Assemble rich indexed search snippets
+        # An indexed excerpt may represent this exact article only, never a blend
+        # of other outlets' reports. Explicitly identify excerpts to the client.
+        search_results = search_results[:1]
         top_title = html_lib.unescape(search_results[0].get("title", ""))
         for sep in [" - ", " | "]:
             if sep in top_title:
@@ -258,6 +263,7 @@ def _query_search_bypass(query: str, original_url: str, original_domain: str, or
                 "title": top_title or original_title or (top_domain.capitalize() + " Dispatch"),
                 "text": combined_body,
                 "word_count": w_count,
+                "content_kind": "indexed_excerpt",
                 "error": None
             }
     except Exception as err:
@@ -272,13 +278,18 @@ def fetch_article_from_url(url: str, title: Optional[str] = None, timeout: float
     clean_url = (url or "").strip()
     if not clean_url.startswith(("http://", "https://")):
         clean_url = "https://" + clean_url
+    try:
+        public_destination(clean_url)
+    except (ValueError, OSError) as error:
+        return {"success": False, "url": clean_url, "domain": "", "title": title or "",
+                "text": "", "word_count": 0, "error": str(error)}
 
     # Check if Google News wrapper (skip slow gnewsdecoder if headline is provided for direct search bypass)
-    if "news.google.com" in clean_url and not title:
+    if urlparse(clean_url).hostname == "news.google.com":
         clean_url = resolve_google_news_url(clean_url)
 
     domain = extract_domain(clean_url) or ""
-    is_google_news = "news.google.com" in clean_url
+    is_google_news = urlparse(clean_url).hostname == "news.google.com"
 
     headers = {
         "User-Agent": USER_AGENT,
@@ -293,36 +304,14 @@ def fetch_article_from_url(url: str, title: Optional[str] = None, timeout: float
     try:
         # TIER 0: If Google News wrapper could not be resolved to publisher, bypass to Search Index
         if is_google_news:
-            logger.info("Google News link detected (%s). Resolving via Search Bypass with headline: %s", clean_url, title)
-            search_query = (title or "").strip()
-            if not search_query:
-                parsed_u = urlparse(clean_url)
-                slug = parsed_u.path.strip("/").split("/")[-1]
-                slug_words = re.sub(r"[^a-zA-Z0-9\s]", " ", slug)
-                terms = [w for w in slug_words.split() if len(w) > 3][:6]
-                if terms:
-                    search_query = " ".join(terms)
-
-            if search_query:
-                bypass_res = _query_search_bypass(search_query, clean_url, domain, title)
-                if bypass_res and bypass_res.get("success"):
-                    return bypass_res
-
-            return {
-                "success": False,
-                "url": clean_url,
-                "domain": domain,
-                "title": title or "",
-                "text": "",
-                "word_count": 0,
-                "error": "Could not resolve Google News wrapper via search bypass."
-            }
-
+            return {"success": False, "url": clean_url, "domain": domain,
+                    "title": title or "", "text": "", "word_count": 0,
+                    "error": "Could not resolve this specific article. Open its publisher link or paste the article text."}
         # TIER 1: Direct Request (Skip if it's still a Google News wrapper)
         if not is_google_news:
             logger.info("Fetching article content from URL: %s", clean_url)
             try:
-                response = requests.get(clean_url, headers=headers, timeout=timeout, allow_redirects=True)
+                response = public_get(clean_url, headers=headers, timeout=timeout, allow_redirects=True)
                 if response.status_code == 200:
                     parse_res = _parse_html_content(response.text, response.url, extract_domain(response.url) or domain)
                     if parse_res["success"] and parse_res["word_count"] >= 35:
@@ -348,7 +337,7 @@ def fetch_article_from_url(url: str, title: Optional[str] = None, timeout: float
         try:
             news_provider = get_news_provider()
             news_res = news_provider.fetch_article_by_url(clean_url)
-            if news_res.get("success") and news_res.get("word_count", 0) >= 35:
+            if news_res.get("success") and news_res.get("word_count", 0) >= 35 and same_article_url(news_res.get("url", ""), clean_url):
                 return {
                     "success": True,
                     "url": news_res.get("url") or clean_url,
@@ -356,6 +345,7 @@ def fetch_article_from_url(url: str, title: Optional[str] = None, timeout: float
                     "title": news_res["title"],
                     "text": news_res["text"],
                     "word_count": news_res["word_count"],
+                    "content_kind": "indexed_excerpt",
                     "error": None
                 }
         except Exception as e:

@@ -1,4 +1,4 @@
-import { useState, useEffect, type FC } from 'react';
+import { useState, useEffect, useRef, type FC } from 'react';
 import { AlertTriangle, CheckCircle2, FileQuestion } from 'lucide-react';
 import { IngestionBar } from './IngestionBar';
 import { ArticleReader } from './ArticleReader';
@@ -16,12 +16,13 @@ interface WorkbenchProps {
   initialUrl?: string;
   initialTitle?: string;
   initialSnippet?: string;
+  onResetContext?: () => void;
 }
 
 export const Workbench: FC<WorkbenchProps> = ({
   initialUrl = '',
   initialTitle = '',
-  initialSnippet = '',
+  onResetContext,
 }) => {
   const [url, setUrl] = useState<string>(initialUrl);
   const [text, setText] = useState<string>('');
@@ -29,6 +30,8 @@ export const Workbench: FC<WorkbenchProps> = ({
   const [articleTitle, setArticleTitle] = useState<string>(initialTitle);
   const [sourceDomain, setSourceDomain] = useState<string>('');
   const [wordCount, setWordCount] = useState<number>(0);
+  const [contentKind, setContentKind] = useState('article');
+  const requestVersion = useRef(0);
 
   const [isFetchingUrl, setIsFetchingUrl] = useState<boolean>(false);
   const [isAnalyzing, setIsAnalyzing] = useState<boolean>(false);
@@ -38,14 +41,10 @@ export const Workbench: FC<WorkbenchProps> = ({
   const [analysisResult, setAnalysisResult] = useState<AnalysisResponse | null>(null);
 
   useEffect(() => {
-    if (initialUrl || initialSnippet) {
+    if (initialUrl) {
       setAnalysisResult(null);
       if (initialUrl) setUrl(initialUrl);
       if (initialTitle) setArticleTitle(initialTitle);
-      if (initialSnippet && !text) {
-        setText(initialSnippet);
-        setWordCount(initialSnippet.split(/\s+/).length);
-      }
       if (initialUrl) {
         handleFetchUrl(initialUrl, initialTitle);
       }
@@ -55,6 +54,9 @@ export const Workbench: FC<WorkbenchProps> = ({
   const handleFetchUrl = async (targetUrl?: string, targetTitle?: string) => {
     const urlToFetch = (targetUrl || url).trim();
     if (!urlToFetch) return;
+    const version = ++requestVersion.current;
+    setText('');
+    setWordCount(0);
 
     // Reset previous analysis ledger and state immediately
     setAnalysisResult(null);
@@ -63,35 +65,33 @@ export const Workbench: FC<WorkbenchProps> = ({
     setStatusMessage('Extracting article content from outlet...');
 
     try {
-      const titleToPass = targetTitle || initialTitle || articleTitle || undefined;
+      const titleToPass = targetTitle || articleTitle || undefined;
       const data = await fetchArticleByUrl(urlToFetch, titleToPass);
+      if (version !== requestVersion.current) return;
       if (!data.success) {
         throw new Error(data.error || 'Failed to extract article content.');
       }
 
       setText(data.text);
-      setArticleTitle(data.title || initialTitle || 'Article Loaded');
+      setUrl(data.url || urlToFetch);
+      setContentKind(data.content_kind || 'article');
+      setArticleTitle(data.title || 'Article Loaded');
       setSourceDomain(data.domain || cleanDomain(urlToFetch));
       setWordCount(data.word_count || data.text.split(/\s+/).length);
       setStatusMessage(`✓ Ingested ${data.word_count} words from ${data.domain || cleanDomain(urlToFetch)}`);
       setTimeout(() => setStatusMessage(''), 4000);
     } catch (err: any) {
-      if (initialSnippet && initialSnippet.trim()) {
-        setText(initialSnippet);
-        setWordCount(initialSnippet.split(/\s+/).length);
-        setStatusMessage('ℹ️ Outlet is protected by anti-bot firewall. Ingested syndicated wire dispatch.');
-        setErrorMessage(null);
-      } else {
-        setErrorMessage(err.message || 'Could not fetch article from URL.');
-        setStatusMessage('');
-      }
+      if (version !== requestVersion.current) return;
+      setErrorMessage(`${err.message || 'Could not fetch article.'} You can paste the article in Raw Text Manuscript.`);
+      setStatusMessage('');
     } finally {
-      setIsFetchingUrl(false);
+      if (version === requestVersion.current) setIsFetchingUrl(false);
     }
   };
 
   const handleAnalyze = async () => {
     if (!text.trim() && !url.trim()) return;
+    const version = ++requestVersion.current;
 
     // Clear previous article claims and dossier immediately so UI stays clean
     setAnalysisResult(null);
@@ -103,8 +103,9 @@ export const Workbench: FC<WorkbenchProps> = ({
       const result = await analyzeArticle({
         text: text.trim(),
         url: url.trim() || undefined,
-        title: articleTitle || initialTitle || undefined,
+        title: articleTitle || undefined,
       });
+      if (version !== requestVersion.current) return;
 
       if (result.error) {
         throw new Error(result.error);
@@ -120,14 +121,20 @@ export const Workbench: FC<WorkbenchProps> = ({
       );
       setTimeout(() => setStatusMessage(''), 5000);
     } catch (err: any) {
+      if (version !== requestVersion.current) return;
       setErrorMessage(err.message || 'Analysis pipeline encountered an error.');
       setStatusMessage('');
     } finally {
-      setIsAnalyzing(false);
+      if (version === requestVersion.current) setIsAnalyzing(false);
     }
   };
 
   const handleReset = () => {
+    ++requestVersion.current;
+    setIsFetchingUrl(false);
+    setIsAnalyzing(false);
+    setContentKind('article');
+    onResetContext?.();
     setUrl('');
     setText('');
     setArticleTitle('');
@@ -153,15 +160,25 @@ export const Workbench: FC<WorkbenchProps> = ({
       {/* Top Ingestion Bar */}
       <IngestionBar
         url={url}
-        onChangeUrl={setUrl}
+        onChangeUrl={(nextUrl) => { handleReset(); setUrl(nextUrl); }}
         onFetchUrl={() => handleFetchUrl()}
         isFetchingUrl={isFetchingUrl}
         inputMode={inputMode}
-        onChangeMode={setInputMode}
+        onChangeMode={(mode) => {
+          setInputMode(mode);
+          if (mode === 'paste') {
+            ++requestVersion.current;
+            setIsFetchingUrl(false); setIsAnalyzing(false);
+            setUrl(''); setSourceDomain(''); setArticleTitle('');
+            setContentKind('article'); setAnalysisResult(null); setStatusMessage('');
+            onResetContext?.();
+          }
+        }}
         articleMeta={{
           title: articleTitle,
           domain: sourceDomain,
           wordCount,
+          contentKind,
         }}
       />
 

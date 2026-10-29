@@ -126,14 +126,14 @@ export const ArticleCard: FC<ArticleCardProps> = ({ article, onAnalyze, onCompar
         </a>
 
         <div className="flex items-center gap-2">
-          {article.perspectives && article.perspectives.length >= 2 && onCompare && (
+          {onCompare && (
             <button
               onClick={(e) => {
                 e.stopPropagation();
                 onCompare(article);
               }}
               className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded text-xs font-semibold bg-stone-100 hover:bg-stone-200 text-stone-800 transition-colors border border-stone-300 font-mono-data cursor-pointer"
-              title="Compare conflicting perspectives in Echo Chamber Arena"
+              title="Compare this article with another article about the same event"
             >
               <GitCompare className="w-3.5 h-3.5 text-stone-600" />
               <span>Compare</span>

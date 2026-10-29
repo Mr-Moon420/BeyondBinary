@@ -40,6 +40,6 @@ def compute_score(results: List[Dict[str, Any]], loaded_density_pct: float = 0.0
     # Calibrate with loaded language penalty if severe sensationalism is detected (> 2.5% of vocabulary)
     if loaded_density_pct > 2.5:
         penalty = min(12.0, (loaded_density_pct - 2.5) * 2.0)
-        raw_score = max(5.0, raw_score - penalty)
+        raw_score = max(0.0, raw_score - penalty)
 
     return round(raw_score, 2)

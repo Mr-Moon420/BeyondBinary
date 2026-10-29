@@ -7,6 +7,7 @@ and builds a local L2 distance FAISS index for high-speed semantic retrieval.
 
 import os
 import pickle
+import json
 import numpy as np
 import faiss
 from datasets import load_dataset
@@ -39,5 +40,7 @@ index.add(embeddings)
 faiss.write_index(index, INDEX_PATH)
 with open(PASSAGES_PATH, "wb") as f:
     pickle.dump(passages, f)
+with open(os.path.join(DATA_DIR, "passages.json"), "w", encoding="utf-8") as f:
+    json.dump(passages, f, ensure_ascii=False)
 
 print(f"Done! Successfully generated index at: {INDEX_PATH}")

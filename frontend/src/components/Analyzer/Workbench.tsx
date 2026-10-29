@@ -39,6 +39,7 @@ export const Workbench: FC<WorkbenchProps> = ({
 
   useEffect(() => {
     if (initialUrl || initialSnippet) {
+      setAnalysisResult(null);
       if (initialUrl) setUrl(initialUrl);
       if (initialTitle) setArticleTitle(initialTitle);
       if (initialSnippet && !text) {
@@ -55,6 +56,8 @@ export const Workbench: FC<WorkbenchProps> = ({
     const urlToFetch = (targetUrl || url).trim();
     if (!urlToFetch) return;
 
+    // Reset previous analysis ledger and state immediately
+    setAnalysisResult(null);
     setIsFetchingUrl(true);
     setErrorMessage(null);
     setStatusMessage('Extracting article content from outlet...');
@@ -90,6 +93,8 @@ export const Workbench: FC<WorkbenchProps> = ({
   const handleAnalyze = async () => {
     if (!text.trim() && !url.trim()) return;
 
+    // Clear previous article claims and dossier immediately so UI stays clean
+    setAnalysisResult(null);
     setIsAnalyzing(true);
     setErrorMessage(null);
     setStatusMessage('Extracting check-worthy claims & running RoBERTa inference...');
@@ -182,7 +187,11 @@ export const Workbench: FC<WorkbenchProps> = ({
         <div className="lg:col-span-7 h-full">
           <ArticleReader
             text={text}
-            onChangeText={setText}
+            onChangeText={(newText) => {
+              setText(newText);
+              setWordCount(newText.trim() ? newText.trim().split(/\s+/).length : 0);
+              if (analysisResult) setAnalysisResult(null);
+            }}
             onAnalyze={handleAnalyze}
             onReset={handleReset}
             isAnalyzing={isAnalyzing}
@@ -237,8 +246,8 @@ export const Workbench: FC<WorkbenchProps> = ({
         </div>
       </div>
 
-      {/* Bottom Stream: Claims Fact-Check Detail List */}
-      {analysisResult && analysisResult.claims && (
+      {/* Bottom Stream: Claims Fact-Check Detail List (only display when not actively running a new analysis) */}
+      {!isAnalyzing && analysisResult && analysisResult.claims && (
         <div className="pt-6 border-t border-stone-300">
           <ClaimsList claims={analysisResult.claims} />
         </div>

@@ -47,18 +47,30 @@ def get_bias_classifier():
     if _bias_classifier is None:
         logger.info("Loading political bias model '%s'...", MODEL_NAME)
         try:
+            import torch
             _bias_classifier = pipeline(
                 "text-classification",
                 model=MODEL_NAME,
                 top_k=None,
                 truncation=True,
                 max_length=128,
+                dtype=torch.bfloat16,
                 low_cpu_mem_usage=True
             )
             logger.info("Political bias model loaded successfully.")
         except Exception as e:
-            logger.error("Failed to load political bias model '%s': %s", MODEL_NAME, e)
-            _bias_classifier = None
+            try:
+                _bias_classifier = pipeline(
+                    "text-classification",
+                    model=MODEL_NAME,
+                    top_k=None,
+                    truncation=True,
+                    max_length=128,
+                    low_cpu_mem_usage=True
+                )
+            except Exception as e2:
+                logger.error("Failed to load political bias model '%s': %s", MODEL_NAME, e2)
+                _bias_classifier = None
     return _bias_classifier
 
 # Curated partisan framing and loaded-language lexicon
@@ -217,8 +229,14 @@ def score_to_category(score: float) -> str:
         return "Right"
 
 
+_HF_BIAS_AVAILABLE = True
+
 def _query_hf_inference_bias(text: str) -> Optional[List[Dict[str, Any]]]:
-    """Query Hugging Face Serverless Inference API for political bias BERT to save RAM."""
+    """Query Hugging Face Serverless Inference API with fast circuit breaker."""
+    global _HF_BIAS_AVAILABLE
+    if not _HF_BIAS_AVAILABLE:
+        return None
+
     token = os.getenv("HF_TOKEN") or os.getenv("HUGGINGFACEHUB_API_TOKEN")
     if not token:
         return None
@@ -229,16 +247,20 @@ def _query_hf_inference_bias(text: str) -> Optional[List[Dict[str, Any]]]:
             "Content-Type": "application/json"
         }
         payload = {
-            "inputs": text[:512],
-            "options": {"wait_for_model": True}
+            "inputs": text[:256],
+            "options": {"wait_for_model": False}
         }
-        resp = requests.post(url, headers=headers, json=payload, timeout=12.0)
+        resp = requests.post(url, headers=headers, json=payload, timeout=3.0)
         if resp.status_code == 200:
             data = resp.json()
             if isinstance(data, list) and data:
                 return data[0] if isinstance(data[0], list) else data
+        else:
+            logger.info("HF Bias API status %d. Tripping circuit breaker to local CPU engine.", resp.status_code)
+            _HF_BIAS_AVAILABLE = False
     except Exception as e:
         logger.warning("HF Serverless Bias API error: %s", e)
+        _HF_BIAS_AVAILABLE = False
     return None
 
 

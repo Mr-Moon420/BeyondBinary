@@ -6,6 +6,7 @@ using the ClaimBuster DeBERTa-v2 classifier.
 """
 
 import logging
+import threading
 from typing import List
 import spacy
 from transformers import pipeline
@@ -15,37 +16,45 @@ if not logger.handlers:
     logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(name)s: %(message)s")
 
 # Lazy loaded models
+_classifier_lock = threading.Lock()
 _nlp = None
 _classifier = None
 
 def get_nlp():
     global _nlp
     if _nlp is None:
-        logger.info("Loading spaCy sentence segmenter (en_core_web_sm)...")
         try:
-            _nlp = spacy.load("en_core_web_sm")
+            import en_core_web_sm
+            _nlp = en_core_web_sm.load()
         except Exception:
-            import spacy.cli
-            logger.info("Downloading spaCy model 'en_core_web_sm'...")
-            spacy.cli.download("en_core_web_sm")
-            _nlp = spacy.load("en_core_web_sm")
+            try:
+                _nlp = spacy.load("en_core_web_sm")
+            except Exception:
+                import spacy.cli
+                spacy.cli.download("en_core_web_sm")
+                _nlp = spacy.load("en_core_web_sm")
     return _nlp
 
 def get_classifier():
     global _classifier
     if _classifier is None:
-        logger.info("Loading ClaimBuster-DeBERTaV2 classifier...")
-        try:
-            _classifier = pipeline(
-                "text-classification",
-                model="whispAI/ClaimBuster-DeBERTaV2",
-                low_cpu_mem_usage=True
-            )
-        except Exception:
-            _classifier = pipeline(
-                "text-classification",
-                model="whispAI/ClaimBuster-DeBERTaV2"
-            )
+        with _classifier_lock:
+            if _classifier is None:
+                logger.info("Loading ClaimBuster-DeBERTaV2 classifier...")
+                try:
+                    import torch
+                    _classifier = pipeline(
+                        "text-classification",
+                        model="whispAI/ClaimBuster-DeBERTaV2",
+                        dtype=torch.bfloat16,
+                        low_cpu_mem_usage=True
+                    )
+                except Exception:
+                    _classifier = pipeline(
+                        "text-classification",
+                        model="whispAI/ClaimBuster-DeBERTaV2",
+                        low_cpu_mem_usage=True
+                    )
     return _classifier
 
 

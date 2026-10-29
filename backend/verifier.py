@@ -9,6 +9,7 @@ and transparent Explainable AI (XAI) rationale synthesis.
 import os
 import pickle
 import logging
+import threading
 from typing import Dict, Any, List, Optional
 import requests
 
@@ -25,22 +26,37 @@ logger = logging.getLogger("BeyondBinary.Verifier")
 if not logger.handlers:
     logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(name)s: %(message)s")
 
-# Lazy loading for embedding and NLI models
+# Thread-safe lazy loading locks for embedding and NLI models
+_embedder_lock = threading.Lock()
+_nli_lock = threading.Lock()
 _embedder = None
 _nli = None
 
 def get_embedder():
     global _embedder
     if _embedder is None:
-        logger.info("Initializing SentenceTransformer (all-MiniLM-L6-v2)...")
-        _embedder = SentenceTransformer("all-MiniLM-L6-v2")
+        with _embedder_lock:
+            if _embedder is None:
+                logger.info("Initializing SentenceTransformer (all-MiniLM-L6-v2)...")
+                _embedder = SentenceTransformer("all-MiniLM-L6-v2")
     return _embedder
 
 def get_nli():
     global _nli
     if _nli is None:
-        logger.info("Initializing RoBERTa NLI pipeline (roberta-large-mnli)...")
-        _nli = pipeline("text-classification", model="roberta-large-mnli")
+        with _nli_lock:
+            if _nli is None:
+                logger.info("Initializing RoBERTa NLI pipeline (roberta-large-mnli with bfloat16 memory optimization)...")
+                try:
+                    import torch
+                    _nli = pipeline(
+                        "text-classification",
+                        model="roberta-large-mnli",
+                        dtype=torch.bfloat16,
+                        low_cpu_mem_usage=True
+                    )
+                except Exception:
+                    _nli = pipeline("text-classification", model="roberta-large-mnli", low_cpu_mem_usage=True)
     return _nli
 
 # Relative path loading for FAISS index and passages
@@ -67,8 +83,14 @@ LABEL_MAP = {
 }
 
 
+_HF_NLI_AVAILABLE = True
+
 def _query_hf_inference_nli(premise: str, hypothesis: str) -> Optional[Dict[str, Any]]:
-    """Query Hugging Face Serverless Inference API for RoBERTa-large-MNLI to save local RAM."""
+    """Query Hugging Face Serverless Inference API for RoBERTa-large-MNLI with fast circuit breaker."""
+    global _HF_NLI_AVAILABLE
+    if not _HF_NLI_AVAILABLE:
+        return None
+
     token = os.getenv("HF_TOKEN") or os.getenv("HUGGINGFACEHUB_API_TOKEN")
     if not token:
         return None
@@ -80,9 +102,9 @@ def _query_hf_inference_nli(premise: str, hypothesis: str) -> Optional[Dict[str,
         }
         payload = {
             "inputs": f"{premise}</s></s>{hypothesis}",
-            "options": {"wait_for_model": True}
+            "options": {"wait_for_model": False}
         }
-        resp = requests.post(url, headers=headers, json=payload, timeout=12.0)
+        resp = requests.post(url, headers=headers, json=payload, timeout=3.0)
         if resp.status_code == 200:
             data = resp.json()
             if isinstance(data, list) and data:
@@ -90,8 +112,12 @@ def _query_hf_inference_nli(premise: str, hypothesis: str) -> Optional[Dict[str,
                 items = sorted(items, key=lambda x: x.get("score", 0), reverse=True)
                 top = items[0]
                 return {"label": top["label"], "score": float(top["score"])}
+        else:
+            logger.info("HF Inference API status %d. Tripping circuit breaker to local CPU engine.", resp.status_code)
+            _HF_NLI_AVAILABLE = False
     except Exception as e:
         logger.warning("HF Serverless Inference API request failed: %s", e)
+        _HF_NLI_AVAILABLE = False
     return None
 
 
